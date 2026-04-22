@@ -1,5 +1,5 @@
 // やさしいせかい - Service Worker (Cache First)
-const CACHE_NAME = 'yasashii-sekai-v2';
+const CACHE_NAME = 'yasashii-sekai-v6';
 const OFFLINE_ASSETS = [
   './',
   './index.html',

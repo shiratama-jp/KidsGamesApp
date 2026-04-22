@@ -178,7 +178,7 @@ const LEVELS = [
     ponds: [],
     ghosts: [{ y: 200, minX: 40, maxX: CW-40, speed: 0.84, dir: 1, r: 22 }]
   },
-  // ステージ4: 岩2 + 池2（池は外周に接触させて端っこルートを塞ぐ）
+  // ステージ4: 岩2 + 池2 + 縦移動お化け1（真ん中を縦に往復）
   {
     animal: 3,
     startX: 50, startY: CH-60,
@@ -191,23 +191,27 @@ const LEVELS = [
       { x: 40, y: 170, rx: 60, ry: 45 },
       { x: CW-40, y: 240, rx: 60, ry: 45 }
     ],
-    ghosts: []
+    ghosts: [
+      { x: CW/2, axis: 'y', minY: 175, maxY: 275, speed: 0.72, dir: 1, r: 22 }
+    ]
   },
-  // ステージ5: 岩2 + 池1 + お化け2（家の左にも巡回）
+  // ステージ5 (ラスボス): 岩2 + 池2 + お化け3（横2+縦1で全方向に警戒）
   {
     animal: 4,
     startX: 50, startY: CH-60,
     homeX: CW-50, homeY: 50, homeR: 28,
     rocks: [
-      { x: 130, y: 100, r: 28 },
-      { x: 250, y: 320, r: 28 }
+      { x: 175, y: 180, r: 28 },   // 中央ゲート
+      { x: 250, y: 325, r: 28 }    // 右下の死角封じ
     ],
     ponds: [
-      { x: 280, y: 150, rx: 45, ry: 28 }
+      { x: CW-40, y: 150, rx: 45, ry: 28 },  // 右上（右端に接触）
+      { x: 85,  y: 260, rx: 50, ry: 30 }   // 左下（新）
     ],
     ghosts: [
-      { y: 225, minX: 60, maxX: CW-60, speed: 0.72, dir: 1, r: 22 },
-      { y: 85,  minX: 50, maxX: 230,    speed: 0.72, dir: 1, r: 22 }
+      { y: 90,  minX: 50, maxX: 230, speed: 0.72, dir: 1, r: 22 },                    // 家の左を巡回
+      { x: CW/2, axis: 'y', minY: 115, maxY: 170, speed: 0.72, dir: 1, r: 22 },        // 縦移動ゲート（新）
+      { y: 290, minX: 150, maxX: 280, speed: 0.72, dir: 1, r: 22 }                    // 下段で通せんぼ
     ]
   }
 ];
@@ -322,9 +326,13 @@ function startLevel() {
   ballVX = 0;
   ballVY = 0;
 
-  // お化けを開始位置にリセット
+  // お化けを開始位置にリセット（axis='y'で縦移動、既定は横移動）
   for (const g of lv.ghosts) {
-    g.x = g.minX;
+    if (g.axis === 'y') {
+      g.y = g.minY;
+    } else {
+      g.x = g.minX;
+    }
     g.dir = 1;
     g.phase = Math.random() * Math.PI * 2;
   }
@@ -375,11 +383,17 @@ function gameLoop() {
     return;
   }
 
-  // お化けの左右往復
+  // お化けの往復（縦 or 横）
   for (const g of lv.ghosts) {
-    g.x += g.speed * g.dir;
-    if (g.x >= g.maxX) { g.x = g.maxX; g.dir = -1; }
-    if (g.x <= g.minX) { g.x = g.minX; g.dir = 1; }
+    if (g.axis === 'y') {
+      g.y += g.speed * g.dir;
+      if (g.y >= g.maxY) { g.y = g.maxY; g.dir = -1; }
+      if (g.y <= g.minY) { g.y = g.minY; g.dir = 1; }
+    } else {
+      g.x += g.speed * g.dir;
+      if (g.x >= g.maxX) { g.x = g.maxX; g.dir = -1; }
+      if (g.x <= g.minX) { g.x = g.minX; g.dir = 1; }
+    }
   }
 
   // 物理演算
@@ -425,11 +439,13 @@ function gameLoop() {
     }
   }
 
-  // お化け判定（距離）
+  // お化け判定（距離、ふわふわ分も加味）
   for (const g of lv.ghosts) {
-    const gbob = Math.sin(frameCount * 0.08 + g.phase) * 6;
-    const dx = ballX - g.x;
-    const dy = ballY - (g.y + gbob);
+    const bob = Math.sin(frameCount * 0.08 + g.phase) * 6;
+    const gx = g.axis === 'y' ? g.x + bob : g.x;
+    const gy = g.axis === 'y' ? g.y       : g.y + bob;
+    const dx = ballX - gx;
+    const dy = ballY - gy;
     if (Math.sqrt(dx*dx + dy*dy) < BALL_R + g.r) {
       triggerDeath();
       draw();
@@ -525,43 +541,53 @@ function draw() {
     ctx.stroke();
   }
 
-  // 木（岩の代わりに🌳）
+  // 木（🌳 + 濃い緑オーラでコントラスト強化）
   for (const r of lv.rocks) {
     // 影
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
     ctx.beginPath();
     ctx.ellipse(r.x, r.y + r.r * 0.85, r.r * 0.85, r.r * 0.22, 0, 0, Math.PI * 2);
     ctx.fill();
-    // 🌳
-    ctx.font = (r.r * 2.2) + 'px serif';
+    // 濃い緑の背面オーラ
+    const tGrad = ctx.createRadialGradient(r.x, r.y, r.r * 0.2, r.x, r.y, r.r * 1.1);
+    tGrad.addColorStop(0, 'rgba(18, 65, 28, 0.65)');
+    tGrad.addColorStop(0.7, 'rgba(18, 65, 28, 0.25)');
+    tGrad.addColorStop(1, 'rgba(18, 65, 28, 0)');
+    ctx.fillStyle = tGrad;
+    ctx.beginPath();
+    ctx.arc(r.x, r.y, r.r * 1.2, 0, Math.PI * 2);
+    ctx.fill();
+    // 🌳（大きめ + カラー絵文字フォント明示）
+    ctx.font = (r.r * 2.5) + 'px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('🌳', r.x, r.y);
   }
 
-  // お化け
+  // お化け（axis='y'で縦移動、既定は横移動）
   for (const g of lv.ghosts) {
-    const gbob = Math.sin(frameCount * 0.08 + g.phase) * 6;
-    const gy = g.y + gbob;
+    const bob = Math.sin(frameCount * 0.08 + g.phase) * 6;
+    const gx = g.axis === 'y' ? g.x + bob : g.x;
+    const gy = g.axis === 'y' ? g.y       : g.y + bob;
     // 影
     ctx.fillStyle = 'rgba(0,0,0,0.12)';
     ctx.beginPath();
-    ctx.ellipse(g.x, g.y + 24, 18, 4.5, 0, 0, Math.PI * 2);
+    ctx.ellipse(gx, gy + 24, 18, 4.5, 0, 0, Math.PI * 2);
     ctx.fill();
     // 背面に薄紫のオーラ（視認性アップ）
-    const gGrad = ctx.createRadialGradient(g.x, gy, 4, g.x, gy, 30);
+    const gGrad = ctx.createRadialGradient(gx, gy, 4, gx, gy, 30);
     gGrad.addColorStop(0, 'rgba(150,110,200,0.6)');
     gGrad.addColorStop(0.6, 'rgba(170,130,210,0.25)');
     gGrad.addColorStop(1, 'rgba(180,150,220,0)');
     ctx.fillStyle = gGrad;
     ctx.beginPath();
-    ctx.arc(g.x, gy, 32, 0, Math.PI * 2);
+    ctx.arc(gx, gy, 32, 0, Math.PI * 2);
     ctx.fill();
     // 👻（ちょっと大きめ）
-    ctx.font = '46px serif';
+    ctx.font = '46px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('👻', g.x, gy);
+    ctx.fillText('👻', gx, gy);
   }
 
   // 動物ボール
@@ -579,8 +605,8 @@ function draw() {
   ctx.strokeStyle = 'rgba(180,160,120,0.3)';
   ctx.lineWidth = 2;
   ctx.stroke();
-  // 絵文字
-  ctx.font = (BALL_R * 2.5) + 'px serif';
+  // 絵文字（全身絵文字はカラーフォント明示で安定表示）
+  ctx.font = (BALL_R * 2.5) + 'px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(ANIMALS[lv.animal], ballX, ballY + bounceY);
