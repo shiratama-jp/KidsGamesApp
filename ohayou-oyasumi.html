@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>おはようから おやすみまで</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  background: #f0f4ff;
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+}
+.container {
+  text-align: center;
+  padding: 14px;
+  max-width: 440px;
+  width: 100%;
+}
+h1 {
+  font-size: 20px; font-weight: 900; color: #4a6ab0;
+  margin-bottom: 4px; letter-spacing: 1px;
+}
+.subtitle {
+  font-size: 12px; color: #8098c0; margin-bottom: 10px;
+}
+
+/* 時計 */
+#clock-wrap {
+  position: relative;
+  width: 240px; height: 240px;
+  margin: 0 auto 4px;
+}
+#clock-canvas {
+  position: absolute;
+  left: 30px; top: 30px;
+  border-radius: 50%;
+  box-shadow: 0 4px 20px rgba(60,100,180,0.15);
+}
+.clock-emoji {
+  position: absolute;
+  font-size: 20px;
+  line-height: 1;
+  animation: emoji-place 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  pointer-events: none;
+  z-index: 2;
+}
+@keyframes emoji-place { 0%{transform:scale(0);opacity:0} 100%{transform:scale(1);opacity:1} }
+
+#period-label {
+  font-size: 22px; font-weight: 900; color: #4a6ab0;
+  margin-top: 4px;
+}
+#period-question {
+  font-size: 15px; font-weight: 700; color: #8098c0;
+  margin-top: 2px; margin-bottom: 6px;
+}
+
+/* 選んだもの表示 */
+#picked-area {
+  min-height: 36px;
+  margin-bottom: 6px;
+  font-size: 28px;
+  letter-spacing: 4px;
+}
+
+/* 選択肢グリッド */
+#choices {
+  display: inline-grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.choice-btn {
+  width: 80px; height: 80px;
+  border: 3px solid #d0d8e8;
+  border-radius: 16px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 3px;
+  font-family: 'Zen Maru Gothic', sans-serif;
+}
+.choice-btn .emoji { font-size: 30px; line-height: 1; }
+.choice-btn .label { font-size: 10px; font-weight: 700; color: #7090b0; }
+.choice-btn:hover:not(.selected):not(.done) {
+  border-color: #ffcc44;
+  transform: scale(1.06);
+  box-shadow: 0 4px 12px rgba(255,200,50,0.3);
+}
+.choice-btn.selected {
+  border-color: #66cc66; background: #f0ffe8;
+  transform: scale(0.95); opacity: 0.7;
+  cursor: default;
+}
+.choice-btn.done {
+  cursor: default; opacity: 0.4;
+}
+
+#pick-count {
+  font-size: 14px; font-weight: 900; color: #8098c0;
+  margin-bottom: 8px;
+}
+
+.game-btn {
+  padding: 10px 28px;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-size: 16px; font-weight: 900; cursor: pointer;
+  border: 3px solid #5a80c0; border-radius: 12px;
+  background: rgba(90,130,200,0.85); color: #fff;
+  box-shadow: 0 4px 12px rgba(60,100,180,0.3);
+  transition: all 0.2s; visibility: hidden;
+}
+.game-btn:hover { background: rgba(70,110,180,0.95); transform: scale(1.04); }
+.game-btn.visible { visibility: visible; }
+
+/* 結果画面 */
+#result-overlay {
+  display: none; position: fixed;
+  top:0; left:0; width:100%; height:100%;
+  background: rgba(240,244,255,0.95);
+  z-index: 100; flex-direction: column;
+  align-items: center; justify-content: center; gap: 8px;
+}
+#result-overlay.show { display: flex; }
+#result-overlay .big { font-size: 26px; font-weight: 900; color: #4a6ab0; }
+#result-overlay .detail { font-size: 15px; font-weight: 700; color: #7090b0; }
+#result-clock-wrap {
+  position: relative;
+  width: 320px; height: 320px;
+  margin: 0 auto;
+}
+#result-clock-canvas {
+  position: absolute;
+  left: 70px; top: 70px;
+  border-radius: 50%;
+}
+.restart-btn {
+  margin-top: 8px; padding: 10px 32px;
+
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-size: 18px; font-weight: 900; cursor: pointer;
+  border: 3px solid #5a80c0; border-radius: 60px;
+  background: rgba(90,130,200,0.85); color: #fff;
+  box-shadow: 0 4px 0 #3a60a0; transition: all 0.2s;
+}
+.restart-btn:hover { background: rgba(70,110,180,0.95); }
+
+#result-layout {
+  margin: 8px auto;
+}
+#res-middle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+#result-clock-wrap {
+  position: relative;
+  width: 160px; height: 160px;
+  flex-shrink: 0;
+}
+#result-clock-canvas {
+  position: absolute;
+  left: 0; top: 0;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+}
+.res-block {
+  font-size: 13px;
+  font-weight: 700;
+  color: #5a7aaa;
+  line-height: 1.6;
+  min-width: 90px;
+  padding: 4px;
+}
+.res-block .res-title {
+  font-size: 12px;
+  font-weight: 900;
+  color: #4a6ab0;
+  margin-bottom: 2px;
+}
+.res-block .res-item {
+  font-size: 13px;
+  white-space: nowrap;
+}
+#res-top, #res-bottom {
+  text-align: center;
+}
+#res-top {
+  margin-left: -20px;
+}
+#res-left {
+  text-align: right;
+  padding-top: 20px;
+}
+#res-right {
+  text-align: left;
+}
+#flash-overlay {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  pointer-events: none; z-index: 90; opacity: 0;
+}
+#flash-overlay.flash { animation: flash-bang 0.6s ease-out forwards; }
+@keyframes flash-bang {
+  0% { opacity:0; background: radial-gradient(circle, rgba(255,255,200,0.9), rgba(200,220,255,0.3)); }
+  15% { opacity:1; } 100% { opacity:0; }
+}
+#sparkle-canvas {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  pointer-events: none; z-index: 91;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🌅 おはようから おやすみまで 🌙</h1>
+  <p class="subtitle">じかんごとに なにをするか えらぼう！</p>
+
+  <div id="clock-wrap">
+    <canvas id="clock-canvas" width="180" height="180"></canvas>
+  </div>
+
+  <div id="period-label"></div>
+  <div id="period-question"></div>
+
+  <div id="picked-area"></div>
+  <div id="pick-count"></div>
+
+  <div id="choices"></div>
+
+  <button class="game-btn" id="nextBtn">つぎの じかんへ →</button>
+</div>
+
+<div id="result-overlay">
+  <div class="big" id="res-title"></div>
+  <div class="detail">きみの いちにち</div>
+  <div id="result-layout">
+    <div id="res-top" class="res-block"></div>
+    <div id="res-middle">
+      <div id="res-left" class="res-block"></div>
+      <div id="result-clock-wrap">
+        <canvas id="result-clock-canvas" width="180" height="180"></canvas>
+      </div>
+      <div id="res-right" class="res-block"></div>
+    </div>
+    <div id="res-bottom" class="res-block"></div>
+  </div>
+  <div class="detail" id="res-detail"></div>
+  <button class="restart-btn" id="restartBtn">もういっかい！</button>
+</div>
+
+<div id="flash-overlay"></div>
+<canvas id="sparkle-canvas"></canvas>
+
+<script>
+const ALL_ACTIONS = [
+  { emoji: '😃', label: 'おはよう',     exclude: ['daytime','evening'] },
+  { emoji: '🍚', label: 'ごはん',       exclude: [] },
+  { emoji: '🍞', label: 'パン',         exclude: ['evening'] },
+  { emoji: '🍫', label: 'おやつ',       exclude: ['morning'] },
+  { emoji: '🎨', label: 'おえかき',     exclude: [] },
+  { emoji: '📺', label: 'テレビ',       exclude: [] },
+  { emoji: '🧸', label: 'あそぶ',       exclude: [] },
+  { emoji: '📖', label: 'えほん',       exclude: [] },
+  { emoji: '🦷', label: 'はみがき',     exclude: [] },
+  { emoji: '😪', label: 'おひるね',     exclude: ['morning','evening'] },
+  { emoji: '🛁', label: 'おふろ',       exclude: ['morning'] },
+  { emoji: '🌙', label: 'おやすみ',     exclude: ['morning','daytime'] },
+  { emoji: '🏃', label: 'おさんぽ',     exclude: ['evening'] },
+  { emoji: '🎵', label: 'おうた',       exclude: [] },
+  { emoji: '🖍️', label: 'おべんきょう', exclude: ['evening'] },
+  { emoji: '🤸', label: 'たいそう',     exclude: ['evening'] },
+  { emoji: '💃', label: 'ダンス',       exclude: [] },
+  { emoji: '🧹', label: 'おそうじ',     exclude: [] }
+];
+
+const PERIODS = [
+  {
+    id: 'morning',
+    title: 'あさ ☀️',
+    question: 'あさは なにを するかな？',
+    startHour: 6, endHour: 9,
+    sky: 'morning',
+    maxPick: 3,
+    highlightColor: 'rgba(255,200,80,0.35)'
+  },
+  {
+    id: 'daytime_am',
+    title: 'ごぜん 🌤',
+    question: 'ごぜんちゅうは なにを するかな？',
+    startHour: 9, endHour: 12,
+    sky: 'noon',
+    maxPick: 3,
+    highlightColor: 'rgba(100,200,100,0.3)',
+    periodFilter: 'daytime'
+  },
+  {
+    id: 'daytime_pm',
+    title: 'ごご 🌤',
+    question: 'ごごは なにを するかな？',
+    startHour: 12, endHour: 6,
+    sky: 'afternoon',
+    maxPick: 4,
+    highlightColor: 'rgba(255,160,80,0.3)',
+    periodFilter: 'daytime',
+    isAfternoon: true
+  },
+  {
+    id: 'evening',
+    title: 'よる 🌙',
+    question: 'よるは なにを するかな？',
+    startHour: 6, endHour: 9,
+    sky: 'night',
+    maxPick: 3,
+    highlightColor: 'rgba(100,110,200,0.35)',
+    periodFilter: 'evening',
+    isAfternoon: true
+  }
+];
+
+let currentPeriodIdx = 0;
+let pickedThisPeriod = [];
+let dayRecord = []; // [{emoji, label, periodIdx, slotHour, isAfternoon}]
+let autoNextTimer = null;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function drawClock(cvs, highlightStart, highlightEnd, sky, highlightColor) {
+  const ctx = cvs.getContext('2d');
+  const cx = 90, cy = 90, r = 80;
+  ctx.clearRect(0, 0, 180, 180);
+
+  const isNight = sky === 'night' || sky === 'evening';
+
+  // 背景
+  let bgGrad;
+  switch(sky) {
+    case 'morning':
+      bgGrad = ctx.createRadialGradient(cx,cy,0,cx,cy,r);
+      bgGrad.addColorStop(0,'#fffde8'); bgGrad.addColorStop(1,'#ffe8a0'); break;
+    case 'noon':
+      bgGrad = ctx.createRadialGradient(cx,cy,0,cx,cy,r);
+      bgGrad.addColorStop(0,'#fffff0'); bgGrad.addColorStop(1,'#ffeeaa'); break;
+    case 'afternoon':
+      bgGrad = ctx.createRadialGradient(cx,cy,0,cx,cy,r);
+      bgGrad.addColorStop(0,'#fff5e0'); bgGrad.addColorStop(1,'#ffd8a0'); break;
+    case 'evening':
+      bgGrad = ctx.createRadialGradient(cx,cy,0,cx,cy,r);
+      bgGrad.addColorStop(0,'#ffe0c0'); bgGrad.addColorStop(1,'#d08060'); break;
+    case 'night':
+      bgGrad = ctx.createRadialGradient(cx,cy,0,cx,cy,r);
+      bgGrad.addColorStop(0,'#3a4a6a'); bgGrad.addColorStop(1,'#1a2a4a'); break;
+    default: bgGrad = '#fff';
+  }
+
+  ctx.fillStyle = bgGrad;
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+
+  // ハイライト（扇形＋境界線）
+  if (highlightColor) {
+    let startAngle = ((highlightStart % 12) - 3) * (Math.PI / 6);
+    let endAngle = ((highlightEnd % 12) - 3) * (Math.PI / 6);
+    // endAngleがstartAngleより小さい場合、2πを足す（時計回り）
+    if (endAngle <= startAngle) endAngle += Math.PI * 2;
+    // 扇形塗り
+    ctx.fillStyle = highlightColor;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r - 4, startAngle, endAngle);
+    ctx.closePath();
+    ctx.fill();
+    // 境界線（開始と終了の2本）
+    ctx.strokeStyle = isNight ? 'rgba(180,190,220,0.6)' : 'rgba(80,120,180,0.4)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(startAngle) * (r - 4), cy + Math.sin(startAngle) * (r - 4));
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(endAngle) * (r - 4), cy + Math.sin(endAngle) * (r - 4));
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  ctx.strokeStyle = isNight ? '#6a7a9a' : '#b0c0d8';
+  ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke();
+
+  // 数字
+  const numColor = isNight ? '#c0d0e8' : '#5a6a80';
+  ctx.font = '900 16px "Zen Maru Gothic",sans-serif';
+  ctx.fillStyle = numColor;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let i = 1; i <= 12; i++) {
+    const angle = (i-3)*(Math.PI/6);
+    ctx.fillText(i.toString(), cx+Math.cos(angle)*(r-18), cy+Math.sin(angle)*(r-18));
+  }
+
+  // 目盛り
+  for (let i = 0; i < 12; i++) {
+    const angle = i*(Math.PI/6);
+    ctx.strokeStyle = isNight ? '#6a7a9a' : '#c0c8d0';
+    ctx.lineWidth = 2; ctx.beginPath();
+    ctx.moveTo(cx+Math.cos(angle)*(r-6), cy+Math.sin(angle)*(r-6));
+    ctx.lineTo(cx+Math.cos(angle)*(r-2), cy+Math.sin(angle)*(r-2));
+    ctx.stroke();
+  }
+}
+
+function placeEmojiAroundClock(wrapId, hour, emoji, isAfternoon) {
+  const wrap = document.getElementById(wrapId);
+  const isResult = wrapId === 'result-clock-wrap';
+  const centerX = isResult ? 160 : 120;
+  const centerY = isResult ? 160 : 120;
+  const outerRadius = isResult ? 148 : 112;
+  const innerRadius = isResult ? 110 : 80;
+  // 午後・夜(isAfternoon)は内側、午前・朝は外側
+  const radius = isAfternoon ? innerRadius : outerRadius;
+
+  const angle = ((hour % 12) - 3) * (Math.PI / 6);
+  const x = centerX + Math.cos(angle) * radius - 10;
+  const y = centerY + Math.sin(angle) * radius - 10;
+
+  const el = document.createElement('div');
+  el.className = 'clock-emoji';
+  el.textContent = emoji;
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  if (isResult) el.style.fontSize = '24px';
+  wrap.appendChild(el);
+}
+
+function clearClockEmojis(wrapId) {
+  document.getElementById(wrapId).querySelectorAll('.clock-emoji').forEach(e => e.remove());
+}
+
+function renderDayRecord() {
+  clearClockEmojis('clock-wrap');
+  for (const rec of dayRecord) {
+    placeEmojiAroundClock('clock-wrap', rec.slotHour, rec.emoji, rec.isAfternoon);
+  }
+}
+
+function getActionsForPeriod(periodId) {
+  const filterKey = PERIODS.find(p => p.id === periodId)?.periodFilter || periodId;
+  return ALL_ACTIONS.filter(a => !a.exclude.includes(filterKey));
+}
+
+function startPeriod() {
+  if (autoNextTimer) { clearTimeout(autoNextTimer); autoNextTimer = null; }
+  pickedThisPeriod = [];
+
+  const period = PERIODS[currentPeriodIdx];
+
+  drawClock(
+    document.getElementById('clock-canvas'),
+    period.startHour, period.endHour,
+    period.sky, period.highlightColor
+  );
+
+  document.getElementById('period-label').textContent = period.title;
+  document.getElementById('period-question').textContent = period.question;
+  document.getElementById('picked-area').textContent = '';
+  document.getElementById('pick-count').textContent = 'あと ' + period.maxPick + 'つ えらべるよ';
+  document.getElementById('nextBtn').classList.remove('visible');
+
+  // 必須アクション（必ず選択肢に含める）
+  const REQUIRED = {
+    morning: ['😃','🍚','🍞','🦷'],
+    daytime: ['🍚','🍞','🍫','🦷'],
+    evening: ['🌙','🍚','🦷','🛁']
+  };
+  const filterKey = period.periodFilter || period.id;
+  const reqEmojis = REQUIRED[filterKey] || [];
+
+  const available = getActionsForPeriod(period.id);
+  // 必須を先に確保
+  const required = available.filter(a => reqEmojis.includes(a.emoji));
+  const others = shuffle(available.filter(a => !reqEmojis.includes(a.emoji)));
+  const pool = [...required, ...others].slice(0, 12);
+  // シャッフルして表示順をランダムに
+  const displayPool = shuffle(pool);
+
+  const choicesDiv = document.getElementById('choices');
+  choicesDiv.innerHTML = '';
+  for (const ch of displayPool) {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.innerHTML = '<span class="emoji">' + ch.emoji + '</span><span class="label">' + ch.label + '</span>';
+    btn.addEventListener('click', () => pickAction(btn, ch));
+    choicesDiv.appendChild(btn);
+  }
+}
+
+function pickAction(btn, action) {
+  if (btn.classList.contains('selected') || btn.classList.contains('done')) return;
+
+  const period = PERIODS[currentPeriodIdx];
+  const remaining = period.maxPick - pickedThisPeriod.length;
+  if (remaining <= 0) return;
+
+  pickedThisPeriod.push(action);
+  btn.classList.add('selected');
+
+  // 時計上の配置位置を計算（時間帯内で均等配置）
+  let slotRange = period.endHour - period.startHour;
+  if (slotRange <= 0) slotRange += 12; // 12→6のような場合
+  const slotIdx = pickedThisPeriod.length - 1;
+  const slotHour = (period.startHour + (slotRange / (period.maxPick + 1)) * (slotIdx + 1)) % 12;
+  const isAfternoon = period.isAfternoon || false;
+
+  dayRecord.push({ emoji: action.emoji, label: action.label, periodIdx: currentPeriodIdx, slotHour, isAfternoon });
+  renderDayRecord();
+
+  // フィードバック
+  const pickedText = pickedThisPeriod.map(a => a.emoji).join(' ');
+  document.getElementById('picked-area').textContent = pickedText;
+
+  doFlash();
+  const rect = btn.getBoundingClientRect();
+  spawnSparkles(rect.left + rect.width/2, rect.top + rect.height/2);
+
+  const left = period.maxPick - pickedThisPeriod.length;
+  if (left > 0) {
+    document.getElementById('pick-count').textContent = 'あと ' + left + 'つ えらべるよ';
+  } else {
+    // この時間帯おわり
+    document.getElementById('pick-count').textContent = '';
+    document.getElementById('period-question').textContent = period.title + ' は こうするんだね！';
+    document.querySelectorAll('.choice-btn').forEach(b => b.classList.add('done'));
+
+    if (currentPeriodIdx >= PERIODS.length - 1) {
+      // 全部おわり！
+      setTimeout(showFinalResult, 1500);
+    } else {
+      document.getElementById('nextBtn').classList.add('visible');
+      autoNextTimer = setTimeout(() => goNext(), 5000);
+    }
+  }
+}
+
+function goNext() {
+  if (autoNextTimer) { clearTimeout(autoNextTimer); autoNextTimer = null; }
+  currentPeriodIdx++;
+  startPeriod();
+}
+
+function showFinalResult() {
+  const overlay = document.getElementById('result-overlay');
+  document.getElementById('res-title').textContent = '⭐ できたね！ ⭐';
+  document.getElementById('res-detail').textContent = 'すてきな いちにちだね！';
+
+  const resCvs = document.getElementById('result-clock-canvas');
+  drawClock(resCvs, 0, 0, 'afternoon', null);
+  // 十字区切り線（12時・3時・6時・9時）
+  const rctx = resCvs.getContext('2d');
+  rctx.strokeStyle = 'rgba(80,120,180,0.3)';
+  rctx.lineWidth = 1.5;
+  rctx.setLineDash([4,3]);
+  // 12時-6時（縦線）
+  rctx.beginPath(); rctx.moveTo(90, 14); rctx.lineTo(90, 166); rctx.stroke();
+  // 9時-3時（横線）
+  rctx.beginPath(); rctx.moveTo(14, 90); rctx.lineTo(166, 90); rctx.stroke();
+  rctx.setLineDash([]);
+
+  // 4つのブロック: 左=あさ, 上=ごぜん, 右=ごご, 下=よる
+  const positions = ['res-left', 'res-top', 'res-right', 'res-bottom'];
+
+  for (let pi = 0; pi < PERIODS.length; pi++) {
+    const p = PERIODS[pi];
+    const block = document.getElementById(positions[pi]);
+    block.innerHTML = '';
+    const items = dayRecord.filter(r => r.periodIdx === pi);
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'res-title';
+    titleEl.textContent = p.title;
+    block.appendChild(titleEl);
+
+    for (const item of items) {
+      const itemEl = document.createElement('div');
+      itemEl.className = 'res-item';
+      itemEl.textContent = item.emoji + ' ' + item.label;
+      block.appendChild(itemEl);
+    }
+  }
+
+  overlay.classList.add('show');
+}
+
+function resetGame() {
+  currentPeriodIdx = 0;
+  dayRecord = [];
+  document.getElementById('result-overlay').classList.remove('show');
+  clearClockEmojis('clock-wrap');
+  clearClockEmojis('result-clock-wrap');
+  startPeriod();
+}
+
+document.getElementById('nextBtn').addEventListener('click', goNext);
+document.getElementById('restartBtn').addEventListener('click', resetGame);
+
+// ======== キラキラ ========
+const spCanvas = document.getElementById('sparkle-canvas');
+const spCtx = spCanvas.getContext('2d');
+let sparkles = [];
+let sparkleAnim = null;
+
+function resizeSparkleCanvas() {
+  spCanvas.width = window.innerWidth;
+  spCanvas.height = window.innerHeight;
+}
+resizeSparkleCanvas();
+window.addEventListener('resize', resizeSparkleCanvas);
+
+const SPARKLE_COLORS = ['#ffee44','#ff88cc','#88eeff','#aaffaa','#ffaa44','#ffffff','#88aaff'];
+
+function spawnSparkles(cx,cy) {
+  for (let i = 0; i < 25; i++) {
+    const angle = Math.random()*Math.PI*2, speed = 2+Math.random()*5;
+    sparkles.push({
+      x:cx,y:cy,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed-2,
+      r:3+Math.random()*4,life:1,decay:0.015+Math.random()*0.015,
+      color:SPARKLE_COLORS[Math.floor(Math.random()*SPARKLE_COLORS.length)],
+      star:Math.random()<0.5,rot:Math.random()*Math.PI*2,rotSpeed:(Math.random()-0.5)*0.15
+    });
+  }
+  if (!sparkleAnim) sparkleLoop();
+}
+
+function sparkleLoop() {
+  spCtx.clearRect(0,0,spCanvas.width,spCanvas.height);
+  sparkles = sparkles.filter(p => p.life > 0);
+  for (const p of sparkles) {
+    p.x+=p.vx;p.y+=p.vy;p.vy+=0.08;p.vx*=0.99;
+    p.life-=p.decay;p.rot+=p.rotSpeed;
+    if (p.life<=0) continue;
+    spCtx.save();spCtx.globalAlpha=p.life;
+    spCtx.translate(p.x,p.y);spCtx.rotate(p.rot);
+    if (p.star) {
+      spCtx.fillStyle=p.color;spCtx.beginPath();
+      for(let i=0;i<4;i++){const a=(Math.PI/2)*i;
+        spCtx.lineTo(Math.cos(a-0.15)*p.r*0.3,Math.sin(a-0.15)*p.r*0.3);
+        spCtx.lineTo(Math.cos(a)*p.r*1.5,Math.sin(a)*p.r*1.5);}
+      spCtx.closePath();spCtx.fill();
+    } else {
+      spCtx.fillStyle=p.color;
+      spCtx.beginPath();spCtx.arc(0,0,p.r,0,Math.PI*2);spCtx.fill();
+    }
+    spCtx.restore();
+  }
+  if (sparkles.length>0){sparkleAnim=requestAnimationFrame(sparkleLoop);}
+  else{sparkleAnim=null;}
+}
+
+function doFlash() {
+  const fl=document.getElementById('flash-overlay');
+  fl.classList.remove('flash');void fl.offsetWidth;fl.classList.add('flash');
+}
+
+// ======== 開始 ========
+startPeriod();
+</script>
+</body>
+</html>

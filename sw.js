@@ -1,12 +1,18 @@
-// やさしいせかい - Service Worker (Cache First)
-const CACHE_NAME = 'yasashii-sekai-v6';
+// にこにこどうぶつらんど - Service Worker (Cache First)
+const CACHE_NAME = 'nikoniko-doubutsu-v8';
 const OFFLINE_ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './icons/icon-maskable-512.png'
+  './icons/icon-maskable-512.png',
+  './animal-guess.html',
+  './doubutsu-irukana.html',
+  './doubutsu-puzzle.html',
+  './ouchi-ni-kaerou.html',
+  './audio-manager.js',
+  './natsuyasuminotanken.mp3'
 ];
 
 self.addEventListener('install', (event) => {

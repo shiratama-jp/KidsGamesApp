@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>はこいれ おてつだい</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  background: #fff8f0;
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+}
+.container {
+  text-align: center;
+  padding: 14px;
+  max-width: 440px;
+  width: 100%;
+}
+h1 {
+  font-size: 22px; font-weight: 900; color: #c07030;
+  margin-bottom: 4px; letter-spacing: 2px;
+}
+.subtitle {
+  font-size: 12px; color: #c09060; margin-bottom: 10px;
+}
+
+#score-area {
+  background: rgba(255,255,255,0.8);
+  border-radius: 12px; padding: 6px 14px; margin-bottom: 8px;
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; min-height: 36px;
+  box-shadow: 0 2px 8px rgba(180,120,60,0.1);
+}
+#found-icons { font-size: 22px; letter-spacing: 2px; display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; }
+#found-icons .icon { display: inline-block; animation: icon-pop 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes icon-pop { 0%{transform:scale(0)} 100%{transform:scale(1)} }
+
+#level-label {
+  font-size: 13px; font-weight: 900; color: #b08050; margin-bottom: 4px;
+}
+
+/* お題 */
+#quest {
+  font-size: 20px; font-weight: 900; color: #c07030;
+  margin-bottom: 10px; min-height: 30px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+#quest .quest-emoji { font-size: 32px; }
+#quest .quest-text { font-size: 18px; }
+
+/* 箱エリア */
+#boxes {
+  display: flex; gap: 20px; justify-content: center;
+  margin-bottom: 14px; min-height: 100px; align-items: flex-end;
+}
+.pack-box {
+  width: 76px; height: 78px;
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  overflow: visible;
+  margin: 0 6px;
+  font-size: 64px;
+  line-height: 1;
+}
+.pack-box .box-num {
+  position: absolute;
+  bottom: -20px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 16px; font-weight: 900;
+  color: #a07040;
+  z-index: 3;
+}
+.pack-box .box-item {
+  font-size: 30px;
+  position: absolute;
+  top: 6px; left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  z-index: 4;
+}
+.pack-box .box-item.filled {
+  opacity: 1;
+  top: 0px;
+}
+
+/* 食べ物グリッド */
+#food-grid-label {
+  font-size: 13px; font-weight: 700; color: #b09070; margin-bottom: 6px;
+}
+#food-grid {
+  display: inline-grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.food-cell {
+  width: 72px; height: 72px;
+  background: #fff;
+  border: 3px solid #e0d0c0;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 38px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 6px rgba(180,140,80,0.1);
+}
+.food-cell:hover:not(:disabled):not(.used):not(.wrong-target) {
+  border-color: #ffcc44;
+  transform: scale(1.06);
+  box-shadow: 0 4px 12px rgba(255,200,50,0.3);
+}
+.food-cell.used {
+  opacity: 0.25;
+  cursor: default;
+  transform: none;
+  background: #f0ece8;
+}
+.food-cell.wrong-shake {
+  animation: cell-shake 0.5s ease-in-out;
+}
+@keyframes cell-shake {
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-5px)}
+  40%{transform:translateX(5px)}
+  60%{transform:translateX(-3px)}
+  80%{transform:translateX(3px)}
+}
+
+#msg {
+  font-size: 17px; font-weight: 900; min-height: 26px; margin-bottom: 8px;
+  color: #c07030;
+}
+#msg.correct { color: #4aaa50; }
+#msg.wrong { color: #e8aa00; }
+
+.game-btn {
+  padding: 10px 28px;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-size: 16px; font-weight: 900; cursor: pointer;
+  border: 3px solid #c87030; border-radius: 12px;
+  background: rgba(220,130,50,0.85); color: #fff;
+  box-shadow: 0 4px 12px rgba(180,100,40,0.3);
+  transition: all 0.2s; visibility: hidden;
+}
+.game-btn:hover { background: rgba(200,110,30,0.95); transform: scale(1.04); }
+.game-btn.visible { visibility: visible; }
+
+/* 結果画面 */
+#result-overlay {
+  display: none; position: fixed;
+  top:0; left:0; width:100%; height:100%;
+  background: rgba(255,248,240,0.95);
+  z-index: 100; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px;
+}
+#result-overlay.show { display: flex; }
+#result-overlay .big { font-size: 28px; font-weight: 900; color: #c07030; }
+#result-overlay .found-list { font-size: 28px; letter-spacing: 4px; text-align: center; margin: 8px 0; }
+#result-overlay .detail { font-size: 16px; font-weight: 700; color: #b08050; }
+.restart-btn {
+  margin-top: 12px; padding: 10px 32px;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-size: 18px; font-weight: 900; cursor: pointer;
+  border: 3px solid #c87030; border-radius: 60px;
+  background: rgba(220,130,50,0.85); color: #fff;
+  box-shadow: 0 4px 0 #a06020; transition: all 0.2s;
+}
+.restart-btn:hover { background: rgba(200,110,30,0.95); }
+
+/* フラッシュ */
+#flash-overlay {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  pointer-events: none; z-index: 90; opacity: 0;
+}
+#flash-overlay.flash { animation: flash-bang 0.6s ease-out forwards; }
+@keyframes flash-bang {
+  0% { opacity:0; background: radial-gradient(circle, rgba(255,255,200,0.9), rgba(255,220,150,0.3)); }
+  15% { opacity:1; } 100% { opacity:0; }
+}
+#sparkle-canvas {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  pointer-events: none; z-index: 91;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>📦 はこいれ おてつだい 📦</h1>
+  <p class="subtitle">おなじ たべものを はこに いれよう！</p>
+
+  <div id="score-area">
+    <div id="found-icons"></div>
+  </div>
+
+  <div id="level-label"></div>
+
+  <div id="quest"></div>
+
+  <div id="boxes"></div>
+
+  <div id="food-grid-label">👆 えらんでね</div>
+  <div id="food-grid"></div>
+
+  <div id="msg"></div>
+  <button class="game-btn" id="nextBtn">つぎの おてつだい →</button>
+</div>
+
+<div id="result-overlay">
+  <div class="big" id="res-title"></div>
+  <div class="found-list" id="res-found"></div>
+  <div class="detail" id="res-detail"></div>
+  <button class="restart-btn" id="restartBtn">もういっかい！</button>
+</div>
+
+<div id="flash-overlay"></div>
+<canvas id="sparkle-canvas"></canvas>
+
+<script>
+const FOODS = ['🍎','🍊','🍋','🍇','🍓','🍌','🍑','🍐','🥝','🍅','🥕','🌽','🥒','🥦','🍆','🐟','🦐','🐙'];
+const CLEAR_PER_LEVEL = 2;
+const MIN_LEVEL = 1;
+const MAX_LEVEL = 3;
+
+let level = MIN_LEVEL; // 箱の数 = 必要な数
+let clearCount = 0;
+let foundItems = [];
+let targetFood = '';
+let filledCount = 0;
+let gridFoods = [];
+let gridUsed = [];
+let autoNextTimer = null;
+let phase = 'idle'; // idle, playing, done
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function pickFoods() {
+  // ターゲットを選ぶ
+  const shuffled = shuffle(FOODS);
+  targetFood = shuffled[0];
+  // ターゲットをlevel個、残り(9-level)個は全部違う食べ物
+  const others = shuffled.slice(1, 1 + (9 - level));
+  const grid = [];
+  for (let i = 0; i < level; i++) grid.push(targetFood);
+  for (const o of others) grid.push(o);
+  return shuffle(grid);
+}
+
+function updateLevel() {
+  const progress = '🟢'.repeat(clearCount) + '⚪'.repeat(CLEAR_PER_LEVEL - clearCount);
+  document.getElementById('level-label').textContent = level + 'こ いれよう  ' + progress;
+}
+
+function updateScore() {
+  const icons = document.getElementById('found-icons');
+  icons.innerHTML = '';
+  for (const t of foundItems) {
+    const sp = document.createElement('span');
+    sp.className = 'icon'; sp.textContent = t;
+    icons.appendChild(sp);
+  }
+}
+
+function buildBoxes() {
+  const boxesDiv = document.getElementById('boxes');
+  boxesDiv.innerHTML = '';
+  for (let i = 0; i < level; i++) {
+    const box = document.createElement('div');
+    box.className = 'pack-box';
+    box.id = 'pack-' + i;
+    box.innerHTML = `
+      <span class="box-item" id="item-${i}"></span>
+      📦
+      <span class="box-num">${i + 1}</span>
+    `;
+    boxesDiv.appendChild(box);
+  }
+}
+
+function buildGrid() {
+  const gridDiv = document.getElementById('food-grid');
+  gridDiv.innerHTML = '';
+  gridFoods = pickFoods();
+  gridUsed = Array(9).fill(false);
+
+  for (let i = 0; i < 9; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'food-cell';
+    cell.id = 'cell-' + i;
+    cell.textContent = gridFoods[i];
+    cell.addEventListener('click', () => tapCell(i));
+    gridDiv.appendChild(cell);
+  }
+}
+
+function setMsg(text, cls) {
+  const el = document.getElementById('msg');
+  el.textContent = text;
+  el.className = cls || '';
+}
+
+function startRound() {
+  if (autoNextTimer) { clearTimeout(autoNextTimer); autoNextTimer = null; }
+  phase = 'playing';
+  filledCount = 0;
+
+  buildGrid();
+  buildBoxes();
+  updateLevel();
+
+  // お題表示
+  const questDiv = document.getElementById('quest');
+  let questHTML = '<span class="quest-emoji">' + targetFood + '</span>';
+  questHTML += '<span class="quest-text">を <span style="font-size:28px;color:#d05a00">' + level + '</span>こ いれてね！</span>';
+  questDiv.innerHTML = questHTML;
+
+  setMsg('');
+  document.getElementById('nextBtn').classList.remove('visible');
+  document.getElementById('food-grid-label').textContent = '👆 えらんでね';
+}
+
+function tapCell(i) {
+  if (phase !== 'playing') return;
+  if (gridUsed[i]) return;
+
+  const cell = document.getElementById('cell-' + i);
+
+  if (gridFoods[i] === targetFood) {
+    // 正解！箱に入れる
+    gridUsed[i] = true;
+    cell.classList.add('used');
+
+    const item = document.getElementById('item-' + filledCount);
+    item.textContent = targetFood;
+    item.classList.add('filled');
+
+    filledCount++;
+
+    if (filledCount >= level) {
+      // 全部入った！
+      phase = 'done';
+      clearCount++;
+      foundItems.push(targetFood);
+      updateScore();
+      updateLevel();
+
+      setMsg('⭕ かんせい！', 'correct');
+      doFlash();
+      const boxesDiv = document.getElementById('boxes');
+      const rect = boxesDiv.getBoundingClientRect();
+      spawnSparkles(rect.left + rect.width / 2, rect.top + rect.height / 2);
+
+      if (clearCount >= CLEAR_PER_LEVEL) {
+        if (level >= MAX_LEVEL) {
+          // 全クリ！
+          setTimeout(showFinalResult, 1500);
+          return;
+        }
+        level++;
+        clearCount = 0;
+        updateLevel();
+        setMsg('つぎは ' + level + 'こ いれるよ！', '');
+        autoNextTimer = setTimeout(() => startRound(), 2500);
+      } else {
+        document.getElementById('nextBtn').classList.add('visible');
+        autoNextTimer = setTimeout(() => startRound(), 7000);
+      }
+    }
+  } else {
+    // 間違い
+    cell.classList.remove('wrong-shake');
+    void cell.offsetWidth;
+    cell.classList.add('wrong-shake');
+
+    setMsg('ちがうよ〜 ' + targetFood + ' をさがそう！', 'wrong');
+    setTimeout(() => {
+      if (document.getElementById('msg').className === 'wrong') setMsg('');
+    }, 1500);
+  }
+}
+
+function showFinalResult() {
+  const overlay = document.getElementById('result-overlay');
+  document.getElementById('res-title').textContent = '⭐ よくできたね！ ⭐';
+  document.getElementById('res-found').textContent = foundItems.join('');
+  document.getElementById('res-detail').textContent = 'おてつだい かんりょう！';
+  overlay.classList.add('show');
+}
+
+function resetGame() {
+  level = MIN_LEVEL;
+  clearCount = 0;
+  foundItems = [];
+  document.getElementById('result-overlay').classList.remove('show');
+  updateScore();
+  startRound();
+}
+
+document.getElementById('nextBtn').addEventListener('click', () => {
+  if (autoNextTimer) { clearTimeout(autoNextTimer); autoNextTimer = null; }
+  startRound();
+});
+document.getElementById('restartBtn').addEventListener('click', resetGame);
+
+// ======== キラキラ ========
+const spCanvas = document.getElementById('sparkle-canvas');
+const spCtx = spCanvas.getContext('2d');
+let sparkles = [];
+let sparkleAnim = null;
+
+function resizeSparkleCanvas() {
+  spCanvas.width = window.innerWidth;
+  spCanvas.height = window.innerHeight;
+}
+resizeSparkleCanvas();
+window.addEventListener('resize', resizeSparkleCanvas);
+
+const SPARKLE_COLORS = ['#ffee44','#ff88cc','#88eeff','#aaffaa','#ffaa44','#ffffff','#ff8844'];
+
+function spawnSparkles(cx, cy) {
+  for (let i = 0; i < 30; i++) {
+    const angle = Math.random() * Math.PI * 2, speed = 2 + Math.random() * 6;
+    sparkles.push({
+      x: cx, y: cy, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 2,
+      r: 3 + Math.random() * 5, life: 1, decay: 0.012 + Math.random() * 0.015,
+      color: SPARKLE_COLORS[Math.floor(Math.random() * SPARKLE_COLORS.length)],
+      star: Math.random() < 0.5, rot: Math.random() * Math.PI * 2, rotSpeed: (Math.random() - 0.5) * 0.15
+    });
+  }
+  if (!sparkleAnim) sparkleLoop();
+}
+
+function sparkleLoop() {
+  spCtx.clearRect(0, 0, spCanvas.width, spCanvas.height);
+  sparkles = sparkles.filter(p => p.life > 0);
+  for (const p of sparkles) {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.vx *= 0.99;
+    p.life -= p.decay; p.rot += p.rotSpeed;
+    if (p.life <= 0) continue;
+    spCtx.save(); spCtx.globalAlpha = p.life;
+    spCtx.translate(p.x, p.y); spCtx.rotate(p.rot);
+    if (p.star) {
+      spCtx.fillStyle = p.color; spCtx.beginPath();
+      for (let i = 0; i < 4; i++) {
+        const a = (Math.PI / 2) * i;
+        spCtx.lineTo(Math.cos(a - 0.15) * p.r * 0.3, Math.sin(a - 0.15) * p.r * 0.3);
+        spCtx.lineTo(Math.cos(a) * p.r * 1.5, Math.sin(a) * p.r * 1.5);
+      }
+      spCtx.closePath(); spCtx.fill();
+    } else {
+      spCtx.fillStyle = p.color;
+      spCtx.beginPath(); spCtx.arc(0, 0, p.r, 0, Math.PI * 2); spCtx.fill();
+    }
+    spCtx.restore();
+  }
+  if (sparkles.length > 0) { sparkleAnim = requestAnimationFrame(sparkleLoop); }
+  else { sparkleAnim = null; }
+}
+
+function doFlash() {
+  const fl = document.getElementById('flash-overlay');
+  fl.classList.remove('flash'); void fl.offsetWidth; fl.classList.add('flash');
+}
+
+// ======== 開始 ========
+updateScore();
+startRound();
+</script>
+</body>
+</html>

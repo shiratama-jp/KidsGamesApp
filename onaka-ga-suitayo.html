@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>おなかが すいたよ</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  background: #fff5f0;
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+}
+.container {
+  text-align: center;
+  padding: 14px;
+  max-width: 440px;
+  width: 100%;
+}
+h1 {
+  font-size: 24px; font-weight: 900; color: #d05050;
+  margin-bottom: 4px; letter-spacing: 2px;
+}
+.subtitle {
+  font-size: 12px; color: #c08080; margin-bottom: 12px;
+}
+
+#score-area {
+  background: rgba(255,255,255,0.8);
+  border-radius: 12px; padding: 6px 14px; margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; min-height: 36px;
+  box-shadow: 0 2px 8px rgba(200,100,80,0.1);
+}
+#found-icons { font-size: 22px; letter-spacing: 2px; display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; }
+#found-icons .icon { display: inline-block; animation: icon-pop 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes icon-pop { 0%{transform:scale(0)} 100%{transform:scale(1)} }
+#remain-label { font-size: 14px; font-weight: 900; color: #b07070; white-space: nowrap; }
+
+/* キャラクター表示 */
+#chara-area {
+  margin-bottom: 12px;
+}
+#chara-emoji {
+  font-size: 80px;
+  line-height: 1;
+  animation: chara-bounce 2s ease-in-out infinite;
+}
+@keyframes chara-bounce {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+#chara-name {
+  font-size: 18px; font-weight: 900; color: #a06050;
+  margin-top: 2px;
+}
+#chara-bubble {
+  display: inline-block;
+  background: #fff;
+  border-radius: 20px;
+  padding: 8px 18px;
+  margin-top: 6px;
+  font-size: 16px; font-weight: 700; color: #d05050;
+  box-shadow: 0 2px 8px rgba(200,100,80,0.12);
+  position: relative;
+}
+#chara-bubble::after {
+  content: '';
+  position: absolute;
+  top: -8px; left: 50%;
+  transform: translateX(-50%);
+  border: 8px solid transparent;
+  border-bottom-color: #fff;
+}
+
+/* 選択肢 */
+#choices {
+  display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.choice-btn {
+  width: 74px; height: 78px;
+  border: 3px solid #e8d0c8;
+  border-radius: 16px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 2px;
+  font-family: 'Zen Maru Gothic', sans-serif;
+}
+.choice-btn .emoji { font-size: 36px; line-height: 1; }
+.choice-btn .label { font-size: 10px; font-weight: 700; color: #a08878; }
+.choice-btn:hover:not(:disabled) {
+  border-color: #ffcc44;
+  transform: scale(1.08);
+  box-shadow: 0 4px 12px rgba(255,200,50,0.3);
+}
+.choice-btn:disabled { opacity: 0.35; cursor: default; transform: none; }
+.choice-btn.correct-mark {
+  border-color: #66cc66;
+  background: #f0ffe8;
+}
+.choice-btn.wrong-shake {
+  animation: btn-shake 0.5s ease-in-out;
+}
+@keyframes btn-shake {
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-6px)}
+  40%{transform:translateX(6px)}
+  60%{transform:translateX(-4px)}
+  80%{transform:translateX(4px)}
+}
+
+#result {
+  font-size: 17px; font-weight: 700; min-height: 26px; margin-bottom: 10px;
+}
+#result.correct { color: #4aaa50; }
+#result.wrong { color: #e8aa00; }
+
+/* 食べてる演出 */
+#eating-area {
+  min-height: 40px;
+  margin-bottom: 6px;
+  font-size: 28px;
+}
+
+.game-btn {
+  padding: 10px 28px;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-size: 16px; font-weight: 900; cursor: pointer;
+  border: 3px solid #d06050; border-radius: 12px;
+  background: rgba(220,90,80,0.85); color: #fff;
+  box-shadow: 0 4px 12px rgba(200,80,60,0.3);
+  transition: all 0.2s; visibility: hidden;
+}
+.game-btn:hover { background: rgba(200,70,60,0.95); transform: scale(1.04); }
+.game-btn.visible { visibility: visible; }
+
+/* 結果画面 */
+#result-overlay {
+  display: none; position: fixed;
+  top:0; left:0; width:100%; height:100%;
+  background: rgba(255,245,240,0.95);
+  z-index: 100; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px;
+}
+#result-overlay.show { display: flex; }
+#result-overlay .big { font-size: 28px; font-weight: 900; color: #d05050; }
+#result-overlay .found-list { font-size: 28px; letter-spacing: 4px; text-align: center; margin: 8px 0; }
+#result-overlay .detail { font-size: 16px; font-weight: 700; color: #b07070; }
+.restart-btn {
+  margin-top: 12px; padding: 10px 32px;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-size: 18px; font-weight: 900; cursor: pointer;
+  border: 3px solid #d06050; border-radius: 60px;
+  background: rgba(220,90,80,0.85); color: #fff;
+  box-shadow: 0 4px 0 #a04040; transition: all 0.2s;
+}
+.restart-btn:hover { background: rgba(200,70,60,0.95); }
+
+/* フラッシュ */
+#flash-overlay {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  pointer-events: none; z-index: 90; opacity: 0;
+}
+#flash-overlay.flash { animation: flash-bang 0.6s ease-out forwards; }
+@keyframes flash-bang {
+  0% { opacity:0; background: radial-gradient(circle, rgba(255,255,200,0.9), rgba(255,200,180,0.3)); }
+  15% { opacity:1; } 100% { opacity:0; }
+}
+#sparkle-canvas {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  pointer-events: none; z-index: 91;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🍽️ おなかが すいたよ 🍽️</h1>
+  <p class="subtitle">すきな たべものを えらんであげよう！</p>
+
+  <div id="score-area">
+    <div id="found-icons"></div>
+    <div id="remain-label">あと 5</div>
+  </div>
+
+  <div id="chara-area">
+    <div id="chara-emoji">🐱</div>
+    <div id="chara-name">ねこ</div>
+    <div id="chara-bubble">おなかすいたよ〜</div>
+  </div>
+
+  <div id="eating-area"></div>
+
+  <div id="choices"></div>
+
+  <div id="result"></div>
+  <button class="game-btn" id="nextBtn">つぎの どうぶつ →</button>
+</div>
+
+<div id="result-overlay">
+  <div class="big" id="res-title"></div>
+  <div class="found-list" id="res-found"></div>
+  <div class="detail" id="res-detail"></div>
+  <button class="restart-btn" id="restartBtn">もういっかい！</button>
+</div>
+
+<div id="flash-overlay"></div>
+<canvas id="sparkle-canvas"></canvas>
+
+<script>
+const PAIRS = [
+  { creature: '🐱', name: 'ねこ',       food: '🐟', foodName: 'さかな' },
+  { creature: '🐶', name: 'いぬ',       food: '🦴', foodName: 'ほね' },
+  { creature: '🐰', name: 'うさぎ',     food: '🥕', foodName: 'にんじん' },
+  { creature: '🐵', name: 'さる',       food: '🍌', foodName: 'バナナ' },
+  { creature: '🐭', name: 'ねずみ',     food: '🧀', foodName: 'チーズ' },
+  { creature: '👶', name: 'あかちゃん',  food: '🍼', foodName: 'ミルク' },
+  { creature: '🐻', name: 'くま',       food: '🍯', foodName: 'はちみつ' },
+  { creature: '🐿️', name: 'りす',       food: '🌰', foodName: 'どんぐり' },
+  { creature: '🐼', name: 'パンダ',     food: '🎋', foodName: 'ささ' }
+];
+
+const TOTAL = 5;
+let round = 0;
+let foundItems = [];
+let currentPair = null;
+let answered = false;
+let autoNextTimer = null;
+let pairOrder = [];
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function shufflePairs() {
+  pairOrder = shuffle([...Array(PAIRS.length).keys()]);
+}
+
+function updateScore() {
+  const icons = document.getElementById('found-icons');
+  icons.innerHTML = '';
+  for (const e of foundItems) {
+    const sp = document.createElement('span');
+    sp.className = 'icon'; sp.textContent = e;
+    icons.appendChild(sp);
+  }
+  document.getElementById('remain-label').textContent = 'あと ' + (TOTAL - round);
+}
+
+function startRound() {
+  if (autoNextTimer) { clearTimeout(autoNextTimer); autoNextTimer = null; }
+  answered = false;
+
+  currentPair = PAIRS[pairOrder[round % pairOrder.length]];
+
+  // キャラ表示
+  document.getElementById('chara-emoji').textContent = currentPair.creature;
+  document.getElementById('chara-name').textContent = currentPair.name;
+  document.getElementById('chara-bubble').textContent = 'おなかすいたよ〜';
+  document.getElementById('eating-area').innerHTML = '';
+
+  // 選択肢：正解 + ランダム3つ（重複なし）
+  const decoyPairs = PAIRS.filter(p => p.food !== currentPair.food);
+  const shuffledDecoys = shuffle(decoyPairs).slice(0, 3);
+  const allChoices = shuffle([
+    { ...currentPair, correct: true },
+    ...shuffledDecoys.map(p => ({ food: p.food, foodName: p.foodName, correct: false }))
+  ]);
+
+  const choicesDiv = document.getElementById('choices');
+  choicesDiv.innerHTML = '';
+  for (const ch of allChoices) {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.innerHTML = '<span class="emoji">' + ch.food + '</span><span class="label">' + ch.foodName + '</span>';
+    btn.addEventListener('click', () => tryChoice(btn, ch));
+    choicesDiv.appendChild(btn);
+  }
+
+  document.getElementById('result').textContent = '';
+  document.getElementById('result').className = '';
+  document.getElementById('nextBtn').classList.remove('visible');
+  updateScore();
+}
+
+function tryChoice(btn, choice) {
+  if (answered) return;
+
+  if (choice.correct) {
+    answered = true;
+    round++;
+    foundItems.push(currentPair.creature);
+    updateScore();
+
+    btn.classList.add('correct-mark');
+    document.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
+
+    // 食べてる演出
+    document.getElementById('chara-bubble').textContent = 'おいしい！😋';
+    document.getElementById('eating-area').innerHTML = currentPair.creature + '💕' + currentPair.food;
+
+    document.getElementById('result').textContent = '⭕ ' + currentPair.foodName + ' だね！';
+    document.getElementById('result').className = 'correct';
+
+    doFlash();
+    const rect = btn.getBoundingClientRect();
+    spawnSparkles(rect.left + rect.width / 2, rect.top + rect.height / 2);
+
+    if (round >= TOTAL) {
+      setTimeout(showFinalResult, 1500);
+    } else {
+      document.getElementById('nextBtn').classList.add('visible');
+      autoNextTimer = setTimeout(() => goNext(), 7000);
+    }
+  } else {
+    btn.classList.remove('wrong-shake');
+    void btn.offsetWidth;
+    btn.classList.add('wrong-shake');
+    btn.disabled = true;
+
+    document.getElementById('result').textContent = 'ちがうよ〜';
+    document.getElementById('result').className = 'wrong';
+    setTimeout(() => {
+      if (document.getElementById('result').className === 'wrong')
+        document.getElementById('result').textContent = '';
+    }, 1200);
+  }
+}
+
+function goNext() {
+  if (autoNextTimer) { clearTimeout(autoNextTimer); autoNextTimer = null; }
+  startRound();
+}
+
+function showFinalResult() {
+  const overlay = document.getElementById('result-overlay');
+  document.getElementById('res-title').textContent = '⭐ よくできたね！ ⭐';
+  document.getElementById('res-found').textContent = foundItems.join('');
+  document.getElementById('res-detail').textContent = 'みんな おなかいっぱい！';
+  overlay.classList.add('show');
+}
+
+function resetGame() {
+  round = 0; foundItems = [];
+  document.getElementById('result-overlay').classList.remove('show');
+  shufflePairs();
+  updateScore();
+  startRound();
+}
+
+document.getElementById('nextBtn').addEventListener('click', goNext);
+document.getElementById('restartBtn').addEventListener('click', resetGame);
+
+// ======== キラキラ ========
+const spCanvas = document.getElementById('sparkle-canvas');
+const spCtx = spCanvas.getContext('2d');
+let sparkles = [];
+let sparkleAnim = null;
+
+function resizeSparkleCanvas() {
+  spCanvas.width = window.innerWidth;
+  spCanvas.height = window.innerHeight;
+}
+resizeSparkleCanvas();
+window.addEventListener('resize', resizeSparkleCanvas);
+
+const SPARKLE_COLORS = ['#ffee44','#ff88cc','#88eeff','#aaffaa','#ffaa44','#ffffff','#ff6688'];
+
+function spawnSparkles(cx, cy) {
+  for (let i = 0; i < 30; i++) {
+    const angle = Math.random() * Math.PI * 2, speed = 2 + Math.random() * 6;
+    sparkles.push({
+      x: cx, y: cy, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 2,
+      r: 3 + Math.random() * 5, life: 1, decay: 0.012 + Math.random() * 0.015,
+      color: SPARKLE_COLORS[Math.floor(Math.random() * SPARKLE_COLORS.length)],
+      star: Math.random() < 0.5, rot: Math.random() * Math.PI * 2, rotSpeed: (Math.random() - 0.5) * 0.15
+    });
+  }
+  if (!sparkleAnim) sparkleLoop();
+}
+
+function sparkleLoop() {
+  spCtx.clearRect(0, 0, spCanvas.width, spCanvas.height);
+  sparkles = sparkles.filter(p => p.life > 0);
+  for (const p of sparkles) {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.vx *= 0.99;
+    p.life -= p.decay; p.rot += p.rotSpeed;
+    if (p.life <= 0) continue;
+    spCtx.save(); spCtx.globalAlpha = p.life;
+    spCtx.translate(p.x, p.y); spCtx.rotate(p.rot);
+    if (p.star) {
+      spCtx.fillStyle = p.color; spCtx.beginPath();
+      for (let i = 0; i < 4; i++) {
+        const a = (Math.PI / 2) * i;
+        spCtx.lineTo(Math.cos(a - 0.15) * p.r * 0.3, Math.sin(a - 0.15) * p.r * 0.3);
+        spCtx.lineTo(Math.cos(a) * p.r * 1.5, Math.sin(a) * p.r * 1.5);
+      }
+      spCtx.closePath(); spCtx.fill();
+    } else {
+      spCtx.fillStyle = p.color;
+      spCtx.beginPath(); spCtx.arc(0, 0, p.r, 0, Math.PI * 2); spCtx.fill();
+    }
+    spCtx.restore();
+  }
+  if (sparkles.length > 0) { sparkleAnim = requestAnimationFrame(sparkleLoop); }
+  else { sparkleAnim = null; }
+}
+
+function doFlash() {
+  const fl = document.getElementById('flash-overlay');
+  fl.classList.remove('flash'); void fl.offsetWidth; fl.classList.add('flash');
+}
+
+// ======== 開始 ========
+shufflePairs();
+startRound();
+</script>
+</body>
+</html>

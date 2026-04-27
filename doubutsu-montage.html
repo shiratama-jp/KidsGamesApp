@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>どうぶつ モンタージュ</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  background: #f5f0ff;
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+}
+.container {
+  text-align: center;
+  padding: 14px;
+  max-width: 440px;
+  width: 100%;
+}
+h1 {
+  font-size: 24px; font-weight: 900; color: #7a50b0;
+  margin-bottom: 4px; letter-spacing: 2px;
+}
+.subtitle {
+  font-size: 12px; color: #a080c0; margin-bottom: 12px;
+}
+
+#score-area {
+  background: rgba(255,255,255,0.8);
+  border-radius: 12px; padding: 6px 14px; margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; min-height: 36px;
+  box-shadow: 0 2px 8px rgba(120,80,180,0.1);
+}
+#found-icons { font-size: 22px; letter-spacing: 2px; display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; }
+#found-icons .icon { display: inline-block; animation: icon-pop 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes icon-pop { 0%{transform:scale(0)} 100%{transform:scale(1)} }
+#remain-label { font-size: 14px; font-weight: 900; color: #8a70a0; white-space: nowrap; }
+
+#msg {
+  font-size: 17px; font-weight: 900; min-height: 26px;
+  margin-bottom: 10px; color: #7a50b0;
+}
+#msg.correct { color: #4aaa50; }
+#msg.wrong { color: #e8aa00; }
+
+/* メインエリア */
+#game-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 14px;
+}
+
+/* お手本 */
+#sample-box {
+  text-align: center;
+}
+#sample-label {
+  font-size: 12px; font-weight: 700; color: #a080c0; margin-bottom: 4px;
+}
+#sample-canvas {
+  border-radius: 14px;
+  box-shadow: 0 3px 12px rgba(120,80,180,0.15);
+  background: #fff;
+  border: 3px solid #d8c8f0;
+}
+
+/* パズル */
+#puzzle-box {
+  text-align: center;
+}
+#puzzle-label {
+  font-size: 12px; font-weight: 700; color: #a080c0; margin-bottom: 4px;
+}
+#puzzle-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 3px 12px rgba(120,80,180,0.15);
+  border: 3px solid #d8c8f0;
+  background: #d8c8f0;
+}
+.puzzle-slot {
+  width: 120px;
+  height: 53px;
+  background: #fff;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.15s;
+  overflow: hidden;
+}
+.puzzle-slot:hover {
+  background: #f8f0ff;
+}
+.puzzle-slot:active {
+  background: #f0e8ff;
+}
+.puzzle-slot canvas {
+  width: 100%; height: 100%;
+}
+/* 正解パーツ */
+.puzzle-slot.matched {
+  box-shadow: inset 0 0 0 2px #88cc66;
+}
+/* タップヒント矢印 */
+.puzzle-slot .tap-hint {
+  position: absolute;
+  right: 4px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  opacity: 0.4;
+  animation: tap-bounce 0.8s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes tap-bounce {
+  0%,100% { transform: translateY(-50%) translateX(0); }
+  50% { transform: translateY(-50%) translateX(3px); }
+}
+
+/* ボタン */
+.game-btn {
+  padding: 10px 28px;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-size: 16px; font-weight: 900; cursor: pointer;
+  border: 3px solid #8a60c0; border-radius: 12px;
+  background: rgba(140,100,200,0.85); color: #fff;
+  box-shadow: 0 4px 12px rgba(120,80,180,0.3);
+  transition: all 0.2s; visibility: hidden;
+}
+.game-btn:hover { background: rgba(120,80,180,0.95); transform: scale(1.04); }
+.game-btn.visible { visibility: visible; }
+
+/* 結果画面 */
+#result-overlay {
+  display: none; position: fixed;
+  top:0; left:0; width:100%; height:100%;
+  background: rgba(245,240,255,0.95);
+  z-index: 100; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px;
+}
+#result-overlay.show { display: flex; }
+#result-overlay .big { font-size: 28px; font-weight: 900; color: #7a50b0; }
+#result-overlay .found-list { font-size: 32px; letter-spacing: 6px; text-align: center; margin: 8px 0; }
+#result-overlay .detail { font-size: 16px; font-weight: 700; color: #8a70a0; }
+.restart-btn {
+  margin-top: 12px; padding: 10px 32px;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-size: 18px; font-weight: 900; cursor: pointer;
+  border: 3px solid #8a60c0; border-radius: 60px;
+  background: rgba(140,100,200,0.85); color: #fff;
+  box-shadow: 0 4px 0 #6a40a0; transition: all 0.2s;
+}
+.restart-btn:hover { background: rgba(120,80,180,0.95); }
+
+/* フラッシュ */
+#flash-overlay {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  pointer-events: none; z-index: 90; opacity: 0;
+}
+#flash-overlay.flash { animation: flash-bang 0.6s ease-out forwards; }
+@keyframes flash-bang {
+  0% { opacity:0; background: radial-gradient(circle, rgba(255,255,200,0.9), rgba(220,200,255,0.3)); }
+  15% { opacity:1; } 100% { opacity:0; }
+}
+#sparkle-canvas {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  pointer-events: none; z-index: 91;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🔍 どうぶつ モンタージュ 🔍</h1>
+  <p class="subtitle">タップして おてほんと おなじ かおを つくろう！</p>
+
+  <div id="score-area">
+    <div id="found-icons"></div>
+    <div id="remain-label">あと 5</div>
+  </div>
+
+  <div id="msg">タップすると パーツが かわるよ！</div>
+
+  <div id="game-area">
+    <div id="sample-box">
+      <div id="sample-label">おてほん</div>
+      <canvas id="sample-canvas" width="100" height="132"></canvas>
+    </div>
+
+    <div id="puzzle-box">
+      <div id="puzzle-label">タップしてね</div>
+      <div id="puzzle-slots">
+        <div class="puzzle-slot" id="slot-0"><canvas width="120" height="53"></canvas><span class="tap-hint">👆</span></div>
+        <div class="puzzle-slot" id="slot-1"><canvas width="120" height="53"></canvas><span class="tap-hint">👆</span></div>
+        <div class="puzzle-slot" id="slot-2"><canvas width="120" height="53"></canvas><span class="tap-hint">👆</span></div>
+      </div>
+    </div>
+  </div>
+
+  <button class="game-btn" id="nextBtn">つぎの どうぶつ →</button>
+</div>
+
+<div id="result-overlay">
+  <div class="big" id="res-title"></div>
+  <div class="found-list" id="res-found"></div>
+  <div class="detail" id="res-detail"></div>
+  <button class="restart-btn" id="restartBtn">もういっかい！</button>
+</div>
+
+<div id="flash-overlay"></div>
+<canvas id="sparkle-canvas"></canvas>
+
+<script>
+const ANIMALS = [
+  { emoji: '🐶', name: 'いぬ' },
+  { emoji: '🐱', name: 'ねこ' },
+  { emoji: '🐰', name: 'うさぎ' },
+  { emoji: '🐹', name: 'ハムスター' },
+  { emoji: '🐻', name: 'くま' },
+  { emoji: '🐸', name: 'かえる' },
+  { emoji: '🐧', name: 'ぺんぎん' },
+  { emoji: '🦊', name: 'きつね' }
+];
+
+const TOTAL = 5;
+const EMOJI_RENDER_SIZE = 160;
+const PIECE_W = 120;
+const PIECE_H = 53;
+
+let round = 0;
+let foundAnimals = [];
+let targetAnimal = null;
+let targetIndex = 0;
+let slotCurrentIndex = [0, 0, 0]; // 各スロットが今表示してる動物のindex
+let slotMatched = [false, false, false];
+let completed = false;
+let autoNextTimer = null;
+
+// 絵文字をオフスクリーンCanvasに描画
+const emojiCanvases = [];
+function prerenderEmojis() {
+  for (const a of ANIMALS) {
+    const c = document.createElement('canvas');
+    c.width = EMOJI_RENDER_SIZE; c.height = EMOJI_RENDER_SIZE;
+    const ctx = c.getContext('2d');
+    ctx.font = (EMOJI_RENDER_SIZE * 0.85) + 'px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(a.emoji, EMOJI_RENDER_SIZE / 2, EMOJI_RENDER_SIZE / 2 + EMOJI_RENDER_SIZE * 0.05);
+    emojiCanvases.push(c);
+  }
+}
+prerenderEmojis();
+
+// 3分割でピースを取得 (0=上, 1=中, 2=下)
+function getSlice(animalIndex, sliceIndex) {
+  const src = emojiCanvases[animalIndex];
+  const sliceH = src.height / 3;
+  const sy = sliceIndex * sliceH;
+  const c = document.createElement('canvas');
+  c.width = PIECE_W; c.height = PIECE_H;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(src, 0, sy, src.width, sliceH, 0, 0, PIECE_W, PIECE_H);
+  return c;
+}
+
+// お手本を描画
+function drawSample() {
+  const sc = document.getElementById('sample-canvas');
+  const ctx = sc.getContext('2d');
+  ctx.clearRect(0, 0, 100, 132);
+  const src = emojiCanvases[targetIndex];
+  ctx.drawImage(src, 0, 0, src.width, src.height, 5, 2, 90, 128);
+}
+
+// スロットを描画
+function renderSlot(slotIdx) {
+  const slot = document.getElementById('slot-' + slotIdx);
+  const cvs = slot.querySelector('canvas');
+  const ctx = cvs.getContext('2d');
+  ctx.clearRect(0, 0, PIECE_W, PIECE_H);
+
+  const piece = getSlice(slotCurrentIndex[slotIdx], slotIdx);
+  ctx.drawImage(piece, 0, 0);
+
+  // マッチ判定
+  const matched = slotCurrentIndex[slotIdx] === targetIndex;
+  slotMatched[slotIdx] = matched;
+  slot.classList.toggle('matched', matched);
+
+  // ヒント矢印
+  const hint = slot.querySelector('.tap-hint');
+  hint.style.display = matched ? 'none' : '';
+}
+
+function renderAllSlots() {
+  for (let i = 0; i < 3; i++) renderSlot(i);
+}
+
+function updateScore() {
+  const icons = document.getElementById('found-icons');
+  icons.innerHTML = '';
+  for (const e of foundAnimals) {
+    const sp = document.createElement('span');
+    sp.className = 'icon'; sp.textContent = e;
+    icons.appendChild(sp);
+  }
+  document.getElementById('remain-label').textContent = 'あと ' + (TOTAL - round);
+}
+
+function checkComplete() {
+  if (slotMatched[0] && slotMatched[1] && slotMatched[2]) {
+    completed = true;
+    round++;
+    foundAnimals.push(targetAnimal.emoji);
+    updateScore();
+
+    document.getElementById('msg').textContent = '⭕ ' + targetAnimal.name + ' かんせい！';
+    document.getElementById('msg').className = 'correct';
+
+    doFlash();
+    const puzzleEl = document.getElementById('puzzle-slots');
+    const rect = puzzleEl.getBoundingClientRect();
+    spawnSparkles(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    setTimeout(() => spawnSparkles(rect.left + rect.width / 2, rect.top + rect.height / 2), 200);
+
+    if (round >= TOTAL) {
+      setTimeout(showFinalResult, 1500);
+    } else {
+      document.getElementById('nextBtn').classList.add('visible');
+      autoNextTimer = setTimeout(() => goNext(), 7000);
+    }
+  }
+}
+
+function tapSlot(slotIdx) {
+  if (completed) return;
+  if (slotMatched[slotIdx]) return; // 既にマッチ済みはスキップ
+
+  // 次の動物に切り替え（ターゲットをスキップしない）
+  slotCurrentIndex[slotIdx] = (slotCurrentIndex[slotIdx] + 1) % ANIMALS.length;
+  renderSlot(slotIdx);
+  checkComplete();
+}
+
+function startRound() {
+  if (autoNextTimer) { clearTimeout(autoNextTimer); autoNextTimer = null; }
+  completed = false;
+  slotMatched = [false, false, false];
+
+  // ターゲット選択
+  targetIndex = Math.floor(Math.random() * ANIMALS.length);
+  targetAnimal = ANIMALS[targetIndex];
+
+  // 各スロットをランダムな別の動物で初期化（ターゲット以外）
+  for (let i = 0; i < 3; i++) {
+    let idx;
+    do {
+      idx = Math.floor(Math.random() * ANIMALS.length);
+    } while (idx === targetIndex);
+    slotCurrentIndex[i] = idx;
+  }
+
+  drawSample();
+  renderAllSlots();
+  updateScore();
+
+  document.getElementById('msg').textContent = targetAnimal.emoji + ' を つくろう！';
+  document.getElementById('msg').className = '';
+  document.getElementById('nextBtn').classList.remove('visible');
+}
+
+function goNext() {
+  if (autoNextTimer) { clearTimeout(autoNextTimer); autoNextTimer = null; }
+  startRound();
+}
+
+function showFinalResult() {
+  const overlay = document.getElementById('result-overlay');
+  document.getElementById('res-title').textContent = '⭐ よくできたね！ ⭐';
+  document.getElementById('res-found').textContent = foundAnimals.join('');
+  document.getElementById('res-detail').textContent = foundAnimals.length + 'ひき つくれたよ！';
+  overlay.classList.add('show');
+}
+
+function resetGame() {
+  round = 0; foundAnimals = [];
+  document.getElementById('result-overlay').classList.remove('show');
+  updateScore();
+  startRound();
+}
+
+// イベント
+for (let i = 0; i < 3; i++) {
+  document.getElementById('slot-' + i).addEventListener('click', () => tapSlot(i));
+}
+document.getElementById('nextBtn').addEventListener('click', goNext);
+document.getElementById('restartBtn').addEventListener('click', resetGame);
+
+// ======== キラキラ ========
+const spCanvas = document.getElementById('sparkle-canvas');
+const spCtx = spCanvas.getContext('2d');
+let sparkles = [];
+let sparkleAnim = null;
+
+function resizeSparkleCanvas() {
+  spCanvas.width = window.innerWidth;
+  spCanvas.height = window.innerHeight;
+}
+resizeSparkleCanvas();
+window.addEventListener('resize', resizeSparkleCanvas);
+
+const SPARKLE_COLORS = ['#ffee44','#ff88cc','#88eeff','#aaffaa','#ffaa44','#ffffff','#cc88ff'];
+
+function spawnSparkles(cx, cy) {
+  for (let i = 0; i < 30; i++) {
+    const angle = Math.random() * Math.PI * 2, speed = 2 + Math.random() * 6;
+    sparkles.push({
+      x: cx, y: cy, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 2,
+      r: 3 + Math.random() * 5, life: 1, decay: 0.012 + Math.random() * 0.015,
+      color: SPARKLE_COLORS[Math.floor(Math.random() * SPARKLE_COLORS.length)],
+      star: Math.random() < 0.5, rot: Math.random() * Math.PI * 2, rotSpeed: (Math.random() - 0.5) * 0.15
+    });
+  }
+  if (!sparkleAnim) sparkleLoop();
+}
+
+function sparkleLoop() {
+  spCtx.clearRect(0, 0, spCanvas.width, spCanvas.height);
+  sparkles = sparkles.filter(p => p.life > 0);
+  for (const p of sparkles) {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.vx *= 0.99;
+    p.life -= p.decay; p.rot += p.rotSpeed;
+    if (p.life <= 0) continue;
+    spCtx.save(); spCtx.globalAlpha = p.life;
+    spCtx.translate(p.x, p.y); spCtx.rotate(p.rot);
+    if (p.star) {
+      spCtx.fillStyle = p.color; spCtx.beginPath();
+      for (let i = 0; i < 4; i++) {
+        const a = (Math.PI / 2) * i;
+        spCtx.lineTo(Math.cos(a - 0.15) * p.r * 0.3, Math.sin(a - 0.15) * p.r * 0.3);
+        spCtx.lineTo(Math.cos(a) * p.r * 1.5, Math.sin(a) * p.r * 1.5);
+      }
+      spCtx.closePath(); spCtx.fill();
+    } else {
+      spCtx.fillStyle = p.color;
+      spCtx.beginPath(); spCtx.arc(0, 0, p.r, 0, Math.PI * 2); spCtx.fill();
+    }
+    spCtx.restore();
+  }
+  if (sparkles.length > 0) { sparkleAnim = requestAnimationFrame(sparkleLoop); }
+  else { sparkleAnim = null; }
+}
+
+function doFlash() {
+  const fl = document.getElementById('flash-overlay');
+  fl.classList.remove('flash'); void fl.offsetWidth; fl.classList.add('flash');
+}
+
+// ======== 開始 ========
+startRound();
+</script>
+</body>
+</html>

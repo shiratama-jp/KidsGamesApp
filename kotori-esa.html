@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ことりに えさを とどけよう</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  background: #e8f4f8;
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+}
+.container {
+  text-align: center;
+  padding: 14px;
+  max-width: 440px;
+  width: 100%;
+}
+h1 {
+  font-size: 20px; font-weight: 900; color: #4a8ab0;
+  margin-bottom: 4px; letter-spacing: 1px;
+}
+.subtitle {
+  font-size: 12px; color: #7aaac0; margin-bottom: 10px;
+}
+
+#score-area {
+  background: rgba(255,255,255,0.8);
+  border-radius: 12px; padding: 6px 14px; margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; min-height: 36px;
+  box-shadow: 0 2px 8px rgba(60,120,160,0.1);
+}
+#found-icons { font-size: 22px; letter-spacing: 2px; display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; }
+#found-icons .icon { display: inline-block; animation: icon-pop 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes icon-pop { 0%{transform:scale(0)} 100%{transform:scale(1)} }
+#remain-label { font-size: 14px; font-weight: 900; color: #6a9ab0; white-space: nowrap; }
+
+#level-label {
+  font-size: 13px; font-weight: 900; color: #7aaac0;
+  margin-bottom: 6px;
+}
+
+#msg {
+  font-size: 17px; font-weight: 700; min-height: 26px; margin-bottom: 8px;
+}
+#msg.correct { color: #4aaa50; }
+#msg.wrong { color: #e8aa00; }
+
+/* あみだくじエリア */
+#amida-area {
+  position: relative;
+  margin: 0 auto 10px;
+}
+#amida-canvas {
+  border-radius: 16px;
+  box-shadow: 0 3px 14px rgba(60,120,160,0.12);
+}
+
+
+.game-btn {
+  padding: 10px 28px;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-size: 16px; font-weight: 900; cursor: pointer;
+  border: 3px solid #4a9ac0; border-radius: 12px;
+  background: rgba(80,160,200,0.85); color: #fff;
+  box-shadow: 0 4px 12px rgba(60,140,180,0.3);
+  transition: all 0.2s; visibility: hidden;
+}
+.game-btn:hover { background: rgba(60,140,180,0.95); transform: scale(1.04); }
+.game-btn.visible { visibility: visible; }
+
+/* 結果画面 */
+#result-overlay {
+  display: none; position: fixed;
+  top:0; left:0; width:100%; height:100%;
+  background: rgba(232,244,248,0.95);
+  z-index: 100; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px;
+}
+#result-overlay.show { display: flex; }
+#result-overlay .big { font-size: 26px; font-weight: 900; color: #4a8ab0; }
+#result-overlay .found-list { font-size: 32px; letter-spacing: 6px; text-align: center; margin: 8px 0; }
+#result-overlay .detail { font-size: 15px; font-weight: 700; color: #6a9ab0; }
+.restart-btn {
+  margin-top: 8px; padding: 10px 32px;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-size: 18px; font-weight: 900; cursor: pointer;
+  border: 3px solid #4a9ac0; border-radius: 60px;
+  background: rgba(80,160,200,0.85); color: #fff;
+  box-shadow: 0 4px 0 #3080a0; transition: all 0.2s;
+}
+.restart-btn:hover { background: rgba(60,140,180,0.95); }
+
+#flash-overlay {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  pointer-events: none; z-index: 90; opacity: 0;
+}
+#flash-overlay.flash { animation: flash-bang 0.6s ease-out forwards; }
+@keyframes flash-bang {
+  0% { opacity:0; background: radial-gradient(circle, rgba(255,255,200,0.9), rgba(200,240,255,0.3)); }
+  15% { opacity:1; } 100% { opacity:0; }
+}
+#sparkle-canvas {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  pointer-events: none; z-index: 91;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🐦 ことりに えさを とどけよう 🐤</h1>
+  <p class="subtitle">あみだくじで ことりの ところへ いこう！</p>
+
+  <div id="score-area">
+    <div id="found-icons"></div>
+    <div id="remain-label"></div>
+  </div>
+
+  <div id="level-label"></div>
+  <div id="msg">おやどりを えらんでね！</div>
+
+  <div id="amida-area">
+    <canvas id="amida-canvas" width="360" height="320"></canvas>
+  </div>
+
+  <button class="game-btn" id="nextBtn">つぎへ →</button>
+</div>
+
+<div id="result-overlay">
+  <div class="big" id="res-title"></div>
+  <div class="found-list" id="res-found"></div>
+  <div class="detail" id="res-detail"></div>
+  <button class="restart-btn" id="restartBtn">もういっかい！</button>
+</div>
+
+<div id="flash-overlay"></div>
+<canvas id="sparkle-canvas"></canvas>
+
+<script>
+const CW = 360, CH = 320;
+const canvas = document.getElementById('amida-canvas');
+const ctx = canvas.getContext('2d');
+
+const FOODS = ['🍎','🐛','🌾','🍇','🍒','🌻','🍓'];
+const CHICK_EMOJI = '🐤';
+const BIRD_EMOJI = '🐓';
+
+const LEVELS = [
+  { lines: 2, bars: 2, rounds: 2 },
+  { lines: 3, bars: 3, rounds: 2 },
+  { lines: 3, bars: 4, rounds: 2 }
+];
+
+let levelIdx = 0;
+let roundInLevel = 0;
+let foundBirds = [];
+let phase = 'choose'; // choose, animating, done
+let autoNextTimer = null;
+
+// あみだくじデータ
+let lineCount = 2;
+let horizontalBars = []; // [{from, to, y}]
+let nestPos = 0; // ひよこがいる位置(0-indexed)
+let currentFood = '';
+
+// 座標計算
+const TOP_Y = 60;
+const BOT_Y = 260;
+const MARGIN_X = 60;
+
+function getLineX(i) {
+  const spacing = (CW - MARGIN_X * 2) / (lineCount - 1);
+  return MARGIN_X + i * spacing;
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function generateBars(barCount) {
+  horizontalBars = [];
+  const yStep = (BOT_Y - TOP_Y) / (barCount + 1);
+  for (let b = 0; b < barCount; b++) {
+    const y = TOP_Y + yStep * (b + 1) + (Math.random() - 0.5) * yStep * 0.3;
+    const from = Math.floor(Math.random() * (lineCount - 1));
+    horizontalBars.push({ from, to: from + 1, y });
+  }
+  // 全縦線に横棒が渡っているかチェック
+  for (let i = 0; i < lineCount; i++) {
+    const touched = horizontalBars.some(b => b.from === i || b.to === i);
+    if (!touched) {
+      // 隣接する線と繋ぐ横棒を追加
+      const neighbor = i > 0 ? i - 1 : i;
+      const y = TOP_Y + yStep * (Math.random() * barCount + 1);
+      horizontalBars.push({ from: neighbor, to: neighbor + 1, y });
+    }
+  }
+}
+
+// あみだくじを辿る（上から下へ：startIdx → ゴールidx）
+function traceAmida(startIdx) {
+  let pos = startIdx;
+  const path = [{ x: getLineX(pos), y: TOP_Y }];
+
+  // 横棒をy順にソート（上から下へ辿る）
+  const sortedBars = [...horizontalBars].sort((a, b) => a.y - b.y);
+
+  for (const bar of sortedBars) {
+    if (bar.from === pos) {
+      path.push({ x: getLineX(pos), y: bar.y });
+      pos = bar.to;
+      path.push({ x: getLineX(pos), y: bar.y });
+    } else if (bar.to === pos) {
+      path.push({ x: getLineX(pos), y: bar.y });
+      pos = bar.from;
+      path.push({ x: getLineX(pos), y: bar.y });
+    }
+  }
+
+  path.push({ x: getLineX(pos), y: BOT_Y });
+  return { endPos: pos, path };
+}
+
+// 描画
+function drawBackground() {
+  // 空のグラデーション
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, CH);
+  skyGrad.addColorStop(0, '#b0daf0');
+  skyGrad.addColorStop(0.6, '#d8eefc');
+  skyGrad.addColorStop(1, '#a8d4a0');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, CW, CH);
+
+  // 雲
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.beginPath(); ctx.ellipse(60, 25, 28, 12, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(45, 28, 18, 9, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(78, 29, 20, 10, 0, 0, Math.PI*2); ctx.fill();
+
+  ctx.beginPath(); ctx.ellipse(280, 18, 22, 10, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(300, 22, 18, 8, 0, 0, Math.PI*2); ctx.fill();
+
+  // 木の枝（下部、巣の後ろ）
+  for (let i = 0; i < lineCount; i++) {
+    const bx = getLineX(i);
+    ctx.strokeStyle = '#8a6a40';
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(bx - 24, BOT_Y + 14);
+    ctx.quadraticCurveTo(bx, BOT_Y + 10, bx + 24, BOT_Y + 16);
+    ctx.stroke();
+
+    // 葉っぱ
+    ctx.fillStyle = '#5aaa40';
+    ctx.beginPath(); ctx.ellipse(bx - 20, BOT_Y + 8, 10, 6, -0.3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(bx + 18, BOT_Y + 10, 10, 6, 0.3, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#4a9a30';
+    ctx.beginPath(); ctx.ellipse(bx + 2, BOT_Y + 6, 8, 5, 0, 0, Math.PI*2); ctx.fill();
+  }
+}
+
+// 状態管理追加
+let selectedBirdIdx = -1; // 選択中の親鳥（-1=未選択）
+let failedPaths = [];     // 失敗した経路のリスト
+
+function drawAmida(highlightPath, correctPath) {
+  ctx.clearRect(0, 0, CW, CH);
+  drawBackground();
+
+  // 縦線（光のライン：外側にぼんやり光＋中心に明るい線）
+  for (let i = 0; i < lineCount; i++) {
+    const x = getLineX(i);
+    // 外側のぼんやり光
+    ctx.strokeStyle = 'rgba(255,240,180,0.35)';
+    ctx.lineWidth = 12;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x, TOP_Y); ctx.lineTo(x, BOT_Y); ctx.stroke();
+    // 中間の光
+    ctx.strokeStyle = 'rgba(255,230,150,0.6)';
+    ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(x, TOP_Y); ctx.lineTo(x, BOT_Y); ctx.stroke();
+    // 中心の明るいライン
+    ctx.strokeStyle = 'rgba(255,255,220,0.9)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x, TOP_Y); ctx.lineTo(x, BOT_Y); ctx.stroke();
+  }
+
+  // 横棒（光のライン）
+  for (const bar of horizontalBars) {
+    const x1 = getLineX(bar.from), x2 = getLineX(bar.to);
+    // 外側のぼんやり光
+    ctx.strokeStyle = 'rgba(255,240,180,0.35)';
+    ctx.lineWidth = 10;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x1, bar.y); ctx.lineTo(x2, bar.y); ctx.stroke();
+    // 中間
+    ctx.strokeStyle = 'rgba(255,230,150,0.6)';
+    ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(x1, bar.y); ctx.lineTo(x2, bar.y); ctx.stroke();
+    // 中心
+    ctx.strokeStyle = 'rgba(255,255,220,0.9)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x1, bar.y); ctx.lineTo(x2, bar.y); ctx.stroke();
+  }
+
+  // 失敗パス（薄く表示）
+  for (const fp of failedPaths) {
+    ctx.strokeStyle = 'rgba(255,120,80,0.25)';
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(fp[0].x, fp[0].y);
+    for (let i = 1; i < fp.length; i++) {
+      ctx.lineTo(fp[i].x, fp[i].y);
+    }
+    ctx.stroke();
+  }
+
+  // 正解パスの表示（失敗時）
+  if (correctPath) {
+    ctx.strokeStyle = 'rgba(100,200,100,0.5)';
+    ctx.lineWidth = 6;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(correctPath[0].x, correctPath[0].y);
+    for (let i = 1; i < correctPath.length; i++) {
+      ctx.lineTo(correctPath[i].x, correctPath[i].y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // ハイライトパス
+  if (highlightPath) {
+    ctx.strokeStyle = '#ff6644';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(highlightPath[0].x, highlightPath[0].y);
+    for (let i = 1; i < highlightPath.length; i++) {
+      ctx.lineTo(highlightPath[i].x, highlightPath[i].y);
+    }
+    ctx.stroke();
+  }
+
+  // 上部：親鳥＋えさ（タップ可能）
+  ctx.font = '28px serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let i = 0; i < lineCount; i++) {
+    if (i === selectedBirdIdx) continue;
+    const lx = getLineX(i);
+    ctx.fillText(BIRD_EMOJI, lx, TOP_Y - 22);
+    ctx.font = '16px serif';
+    ctx.fillText(currentFood, lx, TOP_Y - 4);
+    ctx.font = '28px serif';
+  }
+  // タップ誘導（choose状態時のみ）
+  if (!highlightPath && !correctPath && phase === 'choose') {
+    ctx.font = '12px "Zen Maru Gothic",sans-serif';
+    ctx.fillStyle = 'rgba(100,80,60,0.5)';
+    for (let i = 0; i < lineCount; i++) {
+      if (i === selectedBirdIdx) continue;
+      ctx.fillText('👆', getLineX(i), TOP_Y - 38);
+    }
+  }
+
+  // 下部：巣＋ひよこ
+  for (let i = 0; i < lineCount; i++) {
+    const bx = getLineX(i);
+    // 巣
+    ctx.fillStyle = '#b08840';
+    ctx.beginPath(); ctx.ellipse(bx, BOT_Y + 18, 18, 10, 0, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#8a6a30';
+    ctx.lineWidth = 1.5;
+    for (let s = -12; s <= 12; s += 6) {
+      ctx.beginPath();
+      ctx.moveTo(bx + s - 2, BOT_Y + 14);
+      ctx.quadraticCurveTo(bx + s, BOT_Y + 22, bx + s + 2, BOT_Y + 14);
+      ctx.stroke();
+    }
+
+    if (i === nestPos) {
+      ctx.font = '22px serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(CHICK_EMOJI, bx, BOT_Y + 6);
+      ctx.font = '10px "Zen Maru Gothic",sans-serif';
+      ctx.fillStyle = '#e8a030';
+      ctx.fillText('ここ！', bx, BOT_Y + 36);
+    }
+  }
+}
+
+function updateScore() {
+  const icons = document.getElementById('found-icons');
+  icons.innerHTML = '';
+  for (const e of foundBirds) {
+    const sp = document.createElement('span');
+    sp.className = 'icon'; sp.textContent = e;
+    icons.appendChild(sp);
+  }
+  const totalRounds = LEVELS.reduce((s, l) => s + l.rounds, 0);
+  document.getElementById('remain-label').textContent = 'あと ' + (totalRounds - foundBirds.length);
+}
+
+function updateLevel() {
+  const lv = LEVELS[levelIdx];
+  const progress = '🟢'.repeat(levelIdx) + '⭕' + '⚪'.repeat(LEVELS.length - levelIdx - 1);
+  document.getElementById('level-label').textContent = 'たて ' + lv.lines + 'ぼん  ' + progress;
+}
+
+function setupCanvasTap() {
+  canvas.addEventListener('click', handleCanvasTap);
+  canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleCanvasTap(e); }, { passive: false });
+}
+
+function handleCanvasTap(e) {
+  if (phase !== 'choose') return;
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = CW / rect.width;
+  let cx;
+  if (e.touches) { cx = (e.touches[0].clientX - rect.left) * scaleX; }
+  else { cx = (e.clientX - rect.left) * scaleX; }
+  const cy_tap = e.touches ? (e.touches[0].clientY - rect.top) * (CH / rect.height)
+                           : (e.clientY - rect.top) * (CH / rect.height);
+
+  // 親鳥エリア（TOP_Y - 45 ～ TOP_Y）をタップしたか
+  if (cy_tap < TOP_Y - 45 || cy_tap > TOP_Y + 5) return;
+
+  // 一番近い縦線を探す
+  let closest = -1;
+  let minDist = Infinity;
+  for (let i = 0; i < lineCount; i++) {
+    const d = Math.abs(cx - getLineX(i));
+    if (d < minDist) { minDist = d; closest = i; }
+  }
+  if (minDist < 40 && closest >= 0) {
+    chooseLine(closest);
+  }
+}
+
+setupCanvasTap();
+
+function startRound() {
+  if (autoNextTimer) { clearTimeout(autoNextTimer); autoNextTimer = null; }
+  phase = 'choose';
+
+  const lv = LEVELS[levelIdx];
+  lineCount = lv.lines;
+  generateBars(lv.bars);
+  nestPos = Math.floor(Math.random() * lineCount);
+  currentFood = FOODS[Math.floor(Math.random() * FOODS.length)];
+  selectedBirdIdx = -1;
+  failedPaths = [];
+
+  drawAmida(null, null);
+  updateLevel();
+  updateScore();
+
+  document.getElementById('msg').textContent = 'おやどりを えらんでね！';
+  document.getElementById('msg').className = '';
+  document.getElementById('nextBtn').classList.remove('visible');
+}
+
+async function chooseLine(startIdx) {
+  if (phase !== 'choose') return;
+  phase = 'animating';
+  selectedBirdIdx = startIdx;
+
+  const { endPos, path } = traceAmida(startIdx);
+
+  // アニメーションで辿る
+  await animatePath(path);
+
+  if (endPos === nestPos) {
+    // 正解！
+    foundBirds.push(CHICK_EMOJI);
+    roundInLevel++;
+    updateScore();
+
+    document.getElementById('msg').textContent = '🎉 とどいた！';
+    document.getElementById('msg').className = 'correct';
+
+    doFlash();
+    const rect = canvas.getBoundingClientRect();
+    const nestX = getLineX(nestPos);
+    const scaleX = rect.width / CW;
+    spawnSparkles(rect.left + nestX * scaleX, rect.top + BOT_Y * (rect.height / CH));
+
+    phase = 'done';
+    selectedBirdIdx = -1;
+    failedPaths = [];
+
+    const lv = LEVELS[levelIdx];
+    if (roundInLevel >= lv.rounds) {
+      if (levelIdx >= LEVELS.length - 1) {
+        setTimeout(showFinalResult, 1500);
+        return;
+      }
+      levelIdx++;
+      roundInLevel = 0;
+      document.getElementById('msg').textContent = 'つぎは たて ' + LEVELS[levelIdx].lines + 'ぼん！';
+      autoNextTimer = setTimeout(() => startRound(), 2000);
+    } else {
+      document.getElementById('nextBtn').classList.add('visible');
+      autoNextTimer = setTimeout(() => startRound(), 5000);
+    }
+  } else {
+    // 失敗：ルートを残して再選択
+    failedPaths.push(path);
+    selectedBirdIdx = -1;
+    drawAmida(null, null);
+
+    document.getElementById('msg').textContent = 'ちがうよ〜 ほかの みちを えらんでね！';
+    document.getElementById('msg').className = 'wrong';
+
+    phase = 'choose';
+  }
+}
+
+function findCorrectStart() {
+  for (let i = 0; i < lineCount; i++) {
+    const { endPos } = traceAmida(i);
+    if (endPos === nestPos) return i;
+  }
+  return null;
+}
+
+function animatePath(path) {
+  return new Promise(resolve => {
+    let segIdx = 0;
+    let t = 0;
+    const speed = 3;
+    let frameCount = 0;
+
+    function frame() {
+      if (segIdx >= path.length - 1) {
+        resolve();
+        return;
+      }
+
+      frameCount++;
+      const from = path[segIdx];
+      const to = path[segIdx + 1];
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const totalFrames = Math.max(1, Math.ceil(dist / speed));
+
+      t++;
+      const progress = Math.min(1, t / totalFrames);
+      const cx = from.x + dx * progress;
+      const cy = from.y + dy * progress;
+
+      // ふわふわ揺れ（横方向に正弦波 + 縦方向に小さい波）
+      const wobbleX = Math.sin(frameCount * 0.15) * 4;
+      const wobbleY = Math.sin(frameCount * 0.25) * -2;
+      const birdX = cx + wobbleX;
+      const birdY = cy + wobbleY;
+
+      // 描画更新
+      drawAmida(null, null);
+
+      // 辿った経路を描画（光の道風）
+      ctx.lineCap = 'round';
+      // 外側の光
+      ctx.strokeStyle = 'rgba(255,180,80,0.3)';
+      ctx.lineWidth = 12;
+      ctx.beginPath();
+      ctx.moveTo(path[0].x, path[0].y);
+      for (let i = 1; i <= segIdx; i++) ctx.lineTo(path[i].x, path[i].y);
+      ctx.lineTo(cx, cy);
+      ctx.stroke();
+      // 中心の光
+      ctx.strokeStyle = 'rgba(255,200,100,0.8)';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(path[0].x, path[0].y);
+      for (let i = 1; i <= segIdx; i++) ctx.lineTo(path[i].x, path[i].y);
+      ctx.lineTo(cx, cy);
+      ctx.stroke();
+
+      // 親鳥アイコン（ふわふわ）＋えさ
+      ctx.font = '24px serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(BIRD_EMOJI, birdX, birdY);
+      ctx.font = '12px serif';
+      ctx.fillText(currentFood, birdX + 10, birdY + 14);
+
+      if (progress >= 1) {
+        segIdx++;
+        t = 0;
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    frame();
+  });
+}
+
+function showFinalResult() {
+  const overlay = document.getElementById('result-overlay');
+  document.getElementById('res-title').textContent = '⭐ よくできたね！ ⭐';
+  document.getElementById('res-found').textContent = foundBirds.join('');
+  document.getElementById('res-detail').textContent = 'みんなに えさを とどけたよ！';
+  overlay.classList.add('show');
+}
+
+function resetGame() {
+  levelIdx = 0;
+  roundInLevel = 0;
+  foundBirds = [];
+  document.getElementById('result-overlay').classList.remove('show');
+  startRound();
+}
+
+document.getElementById('nextBtn').addEventListener('click', () => {
+  if (autoNextTimer) { clearTimeout(autoNextTimer); autoNextTimer = null; }
+  startRound();
+});
+document.getElementById('restartBtn').addEventListener('click', resetGame);
+
+// ======== キラキラ ========
+const spCanvas = document.getElementById('sparkle-canvas');
+const spCtx = spCanvas.getContext('2d');
+let sparkles = [];
+let sparkleAnim = null;
+
+function resizeSparkleCanvas() {
+  spCanvas.width = window.innerWidth;
+  spCanvas.height = window.innerHeight;
+}
+resizeSparkleCanvas();
+window.addEventListener('resize', resizeSparkleCanvas);
+
+const SPARKLE_COLORS = ['#ffee44','#ff88cc','#88eeff','#aaffaa','#ffaa44','#ffffff','#88ddff'];
+
+function spawnSparkles(cx, cy) {
+  for (let i = 0; i < 25; i++) {
+    const angle = Math.random() * Math.PI * 2, speed = 2 + Math.random() * 5;
+    sparkles.push({
+      x: cx, y: cy, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 2,
+      r: 3 + Math.random() * 4, life: 1, decay: 0.015 + Math.random() * 0.015,
+      color: SPARKLE_COLORS[Math.floor(Math.random() * SPARKLE_COLORS.length)],
+      star: Math.random() < 0.5, rot: Math.random() * Math.PI * 2, rotSpeed: (Math.random() - 0.5) * 0.15
+    });
+  }
+  if (!sparkleAnim) sparkleLoop();
+}
+
+function sparkleLoop() {
+  spCtx.clearRect(0, 0, spCanvas.width, spCanvas.height);
+  sparkles = sparkles.filter(p => p.life > 0);
+  for (const p of sparkles) {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.vx *= 0.99;
+    p.life -= p.decay; p.rot += p.rotSpeed;
+    if (p.life <= 0) continue;
+    spCtx.save(); spCtx.globalAlpha = p.life;
+    spCtx.translate(p.x, p.y); spCtx.rotate(p.rot);
+    if (p.star) {
+      spCtx.fillStyle = p.color; spCtx.beginPath();
+      for (let i = 0; i < 4; i++) { const a = (Math.PI / 2) * i;
+        spCtx.lineTo(Math.cos(a - 0.15) * p.r * 0.3, Math.sin(a - 0.15) * p.r * 0.3);
+        spCtx.lineTo(Math.cos(a) * p.r * 1.5, Math.sin(a) * p.r * 1.5); }
+      spCtx.closePath(); spCtx.fill();
+    } else {
+      spCtx.fillStyle = p.color;
+      spCtx.beginPath(); spCtx.arc(0, 0, p.r, 0, Math.PI * 2); spCtx.fill();
+    }
+    spCtx.restore();
+  }
+  if (sparkles.length > 0) { sparkleAnim = requestAnimationFrame(sparkleLoop); }
+  else { sparkleAnim = null; }
+}
+
+function doFlash() {
+  const fl = document.getElementById('flash-overlay');
+  fl.classList.remove('flash'); void fl.offsetWidth; fl.classList.add('flash');
+}
+
+// ======== 開始 ========
+startRound();
+</script>
+</body>
+</html>

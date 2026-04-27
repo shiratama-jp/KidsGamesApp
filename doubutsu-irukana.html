@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>どうぶつ いるかな？</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e8f4e0;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:'Zen Maru Gothic',sans-serif}
+#bg{position:relative;width:380px;padding:12px;overflow:hidden;border-radius:24px;background:#fff;box-shadow:0 10px 30px rgba(60,100,40,0.1)}
+#bg-svg{position:absolute;top:0;left:0;width:100%;height:100%;z-index:0;border-radius:24px}
+#wrap{position:relative;z-index:1;text-align:center;color:#3a2a0a}
+
+#quest-area{
+  background:rgba(255,250,230,0.9);border-radius:16px;padding:10px 16px;margin-bottom:8px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.08);
+  display:flex;align-items:center;justify-content:center;gap:12px;
+}
+#quest-label{font-size:15px;font-weight:700;color:#6a5030}
+#quest-animal{font-size:52px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.15));animation:bounce 2s ease-in-out infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+#quest-name{font-size:20px;font-weight:900;color:#4a3020}
+
+#score-area{
+  background:rgba(255,250,235,0.8);border-radius:12px;padding:6px 14px;margin-bottom:8px;
+  display:flex;align-items:center;justify-content:center;gap:10px;min-height:40px;
+}
+#found-icons{font-size:22px;letter-spacing:2px;line-height:1.2;display:flex;flex-wrap:wrap;justify-content:center;gap:1px}
+#found-icons .icon{display:inline-block;animation:icon-pop 0.3s cubic-bezier(0.34,1.56,0.64,1)}
+@keyframes icon-pop{0%{transform:scale(0)}100%{transform:scale(1)}}
+#remain-label{font-size:16px;font-weight:900;color:#8a6a40;white-space:nowrap}
+
+#grid{display:inline-grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:8px}
+.hole{
+  width:105px;height:105px;
+  background:rgba(255,248,220,0.7);
+  border:3px solid rgba(200,180,130,0.5);
+  border-radius:16px;position:relative;overflow:hidden;cursor:pointer;user-select:none;
+  backdrop-filter:blur(2px);transition:border-color 0.2s,background 0.2s;
+  box-shadow:inset 0 2px 8px rgba(0,0,0,0.04);
+}
+.hole:hover{border-color:rgba(255,200,80,0.8);background:rgba(255,245,200,0.8)}
+.hole.flash-ok{border:4px solid #66dd66;background:rgba(100,230,120,0.4);animation:flash-ok-anim 0.4s}
+@keyframes flash-ok-anim{0%{transform:scale(1.06)}100%{transform:scale(1)}}
+.hole.flash-ng{animation:shake 0.4s ease-in-out}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+
+.mole{
+  position:absolute;bottom:-100px;left:50%;transform:translateX(-50%);
+  font-size:56px;line-height:1;z-index:2;pointer-events:none;
+  transition:bottom 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.mole.up{bottom:20px}
+@keyframes sink{0%{bottom:20px;opacity:1}40%{bottom:12px;opacity:1}100%{bottom:-100px;opacity:0}}
+.mole.sinking{animation:sink 0.6s ease-in forwards;transition:none}
+.sparkle-canvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:5;pointer-events:none}
+
+#reaction{position:fixed;z-index:100;pointer-events:none;display:none}
+#reaction .emoji{font-size:80px;animation:react-pop 0.8s cubic-bezier(0.34,1.56,0.64,1) forwards;transform:translate(-50%,-50%)}
+@keyframes react-pop{0%{transform:translate(-50%,-50%) scale(0);opacity:0}40%{transform:translate(-50%,-50%) scale(1.3);opacity:1}70%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(-50%,-50%) scale(1);opacity:0}}
+
+.mole.wrong-shake{animation:wrong-wobble 0.5s ease-in-out}
+@keyframes wrong-wobble{0%,100%{transform:translateX(-50%) rotate(0)}20%{transform:translateX(-50%) rotate(-12deg)}40%{transform:translateX(-50%) rotate(12deg)}60%{transform:translateX(-50%) rotate(-7deg)}80%{transform:translateX(-50%) rotate(7deg)}}
+
+.wrong-text{
+  position:absolute;top:6px;left:50%;transform:translateX(-50%);
+  font-size:13px;font-weight:900;color:#e8aa00;z-index:6;pointer-events:none;
+  text-shadow:0 1px 3px rgba(0,0,0,0.25);
+  opacity:0;animation:wrong-fade 1s ease forwards;
+}
+@keyframes wrong-fade{0%{opacity:0;transform:translateX(-50%) translateY(5px)}15%{opacity:1;transform:translateX(-50%) translateY(0)}75%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-8px)}}
+
+#bottom-area{position:relative;padding:4px 0 14px}
+#msg{font-size:18px;font-weight:900;min-height:28px;color:#3a2000;text-shadow:0 1px 3px rgba(255,255,255,0.7);margin-bottom:6px;position:relative;z-index:2}
+#startBtn,.btn2{
+  padding:10px 32px;font-family:'Zen Maru Gothic',sans-serif;font-size:18px;cursor:pointer;
+  border:3px solid #7ab540;border-radius:12px;background:rgba(130,210,80,0.85);color:#fff;
+  font-weight:900;position:relative;z-index:2;letter-spacing:1px;
+  box-shadow:0 4px 12px rgba(100,180,60,0.3);transition:all 0.2s;
+}
+#startBtn:hover,.btn2:hover{background:rgba(100,190,50,0.95);transform:scale(1.04)}
+#countdown-overlay{display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.6);backdrop-filter:blur(4px);z-index:20;align-items:center;justify-content:center;border-radius:24px}
+#countdown-overlay.show{display:flex}
+#countdown-num{font-size:96px;font-weight:900;color:#fff;text-shadow:0 0 30px rgba(255,220,50,0.9),0 4px 8px rgba(0,0,0,0.5)}
+@keyframes popNum{0%{transform:scale(1.6);opacity:0}30%{transform:scale(1.0);opacity:1}80%{transform:scale(1.0);opacity:1}100%{transform:scale(0.6);opacity:0}}
+#countdown-num.pop{animation:popNum 0.9s ease-out forwards}
+#flower-svg{position:absolute;bottom:0;left:0;width:100%;height:70px;z-index:1;pointer-events:none}
+
+#result-overlay{display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(255,250,230,0.96);z-index:30;border-radius:24px;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+#result-overlay.show{display:flex}
+#result-overlay .big{font-size:28px;font-weight:900;color:#4a8a20}
+#result-overlay .detail{font-size:16px;font-weight:700;color:#6a5030}
+#result-overlay .stars{font-size:40px;margin:8px 0}
+#result-overlay .found-list{font-size:28px;letter-spacing:4px;margin:4px 0;text-align:center}
+/* 戻るボタン */
+.back-btn {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  width: auto;
+  height: 44px;
+  padding: 0 16px;
+  background: #fff;
+  border: 3px solid #7ab540;
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 900;
+  color: #7ab540;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  z-index: 1000;
+  text-decoration: none;
+  transition: transform 0.2s;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.back-btn:active { transform: scale(0.9); }
+.menu-btn {
+  background: #9a8575 !important;
+  border-color: #7a6555 !important;
+  margin-top: 4px;
+}
+</style>
+</head>
+<body>
+<a href="index.html" class="back-btn" id="backBtn">もどる</a>
+<div id="bg">
+<svg id="bg-svg" viewBox="0 0 380 600" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#87CEEB"/><stop offset="100%" stop-color="#c8eaff"/></linearGradient>
+    <linearGradient id="gr" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6abf3a"/><stop offset="100%" stop-color="#4a9a20"/></linearGradient>
+  </defs>
+  <rect width="380" height="600" fill="url(#sky)"/>
+  <g fill="white" opacity="0.9">
+    <ellipse cx="60" cy="50" rx="40" ry="19"/><ellipse cx="86" cy="42" rx="33" ry="17"/><ellipse cx="38" cy="49" rx="25" ry="13"/>
+    <ellipse cx="280" cy="65" rx="48" ry="21"/><ellipse cx="312" cy="55" rx="36" ry="17"/><ellipse cx="252" cy="63" rx="28" ry="13"/>
+    <ellipse cx="168" cy="30" rx="30" ry="13"/><ellipse cx="189" cy="23" rx="24" ry="11"/>
+  </g>
+  <g opacity="0.4">
+    <polygon points="0,200 60,118 120,200" fill="#a8c880"/>
+    <polygon points="50,200 125,102 200,200" fill="#90b870"/>
+    <polygon points="140,200 225,112 310,200" fill="#a0c078"/>
+    <polygon points="250,200 320,128 380,200" fill="#98b870"/>
+  </g>
+  <rect x="0" y="185" width="380" height="415" fill="url(#gr)"/>
+  <g fill="#5aaf30" opacity="0.5">
+    <ellipse cx="20" cy="190" rx="20" ry="8"/><ellipse cx="85" cy="187" rx="24" ry="8"/>
+    <ellipse cx="160" cy="188" rx="22" ry="7"/><ellipse cx="260" cy="187" rx="26" ry="8"/>
+    <ellipse cx="345" cy="189" rx="20" ry="7"/>
+  </g>
+  <rect x="8" y="160" width="11" height="48" fill="#8B5e30"/>
+  <ellipse cx="14" cy="148" rx="25" ry="27" fill="#3a8e3a"/>
+  <ellipse cx="5" cy="157" rx="15" ry="18" fill="#4a9e4a"/>
+  <ellipse cx="23" cy="159" rx="15" ry="16" fill="#2a7e2a"/>
+  <rect x="358" y="156" width="12" height="52" fill="#8B5e30"/>
+  <ellipse cx="364" cy="142" rx="25" ry="27" fill="#3a8e3a"/>
+  <ellipse cx="353" cy="153" rx="16" ry="18" fill="#4a9e4a"/>
+  <ellipse cx="374" cy="155" rx="15" ry="16" fill="#2a7e2a"/>
+  <circle cx="338" cy="40" r="26" fill="#ffe060" opacity="0.9"/>
+  <g stroke="#ffe060" stroke-width="2.5" opacity="0.7">
+    <line x1="338" y1="4" x2="338" y2="0"/><line x1="362" y1="14" x2="368" y2="8"/>
+    <line x1="374" y1="40" x2="380" y2="40"/><line x1="362" y1="66" x2="368" y2="72"/>
+    <line x1="314" y1="14" x2="308" y2="8"/>
+  </g>
+  <g opacity="0.25" fill="none" stroke-width="4">
+    <path d="M40,90 Q190,5 340,90" stroke="#ff6666"/>
+    <path d="M44,95 Q190,13 336,95" stroke="#ffaa44"/>
+    <path d="M48,100 Q190,21 332,100" stroke="#ffee44"/>
+    <path d="M52,105 Q190,29 328,105" stroke="#66dd66"/>
+    <path d="M56,110 Q190,37 324,110" stroke="#6688ff"/>
+  </g>
+</svg>
+
+<div id="countdown-overlay"><div id="countdown-num">3</div></div>
+<div id="result-overlay">
+  <div class="big" id="res-title"></div>
+  <div class="stars" id="res-stars"></div>
+  <div class="found-list" id="res-found"></div>
+  <div class="detail" id="res-detail"></div>
+  <button class="btn2" id="startBtn2">もういっかい！</button>
+</div>
+
+<div id="wrap">
+  <div id="quest-area">
+    <div id="quest-label">この どうぶつを<br>さがそう！</div>
+    <div id="quest-animal">🐶</div>
+    <div id="quest-name">いぬ</div>
+  </div>
+
+  <div id="score-area">
+    <div id="found-icons"></div>
+    <div id="remain-label">あと 10</div>
+  </div>
+
+  <div id="grid">
+    <div class="hole" id="h0"><canvas class="sparkle-canvas" id="sp0" width="105" height="105"></canvas><div class="mole" id="m0"></div></div>
+    <div class="hole" id="h1"><canvas class="sparkle-canvas" id="sp1" width="105" height="105"></canvas><div class="mole" id="m1"></div></div>
+    <div class="hole" id="h2"><canvas class="sparkle-canvas" id="sp2" width="105" height="105"></canvas><div class="mole" id="m2"></div></div>
+    <div class="hole" id="h3"><canvas class="sparkle-canvas" id="sp3" width="105" height="105"></canvas><div class="mole" id="m3"></div></div>
+    <div class="hole" id="h4"><canvas class="sparkle-canvas" id="sp4" width="105" height="105"></canvas><div class="mole" id="m4"></div></div>
+    <div class="hole" id="h5"><canvas class="sparkle-canvas" id="sp5" width="105" height="105"></canvas><div class="mole" id="m5"></div></div>
+    <div class="hole" id="h6"><canvas class="sparkle-canvas" id="sp6" width="105" height="105"></canvas><div class="mole" id="m6"></div></div>
+    <div class="hole" id="h7"><canvas class="sparkle-canvas" id="sp7" width="105" height="105"></canvas><div class="mole" id="m7"></div></div>
+    <div class="hole" id="h8"><canvas class="sparkle-canvas" id="sp8" width="105" height="105"></canvas><div class="mole" id="m8"></div></div>
+  </div>
+  <div id="bottom-area">
+    <svg id="flower-svg" viewBox="0 0 380 70" xmlns="http://www.w3.org/2000/svg">
+      <g fill="#5aaf30" opacity="0.8">
+        <polygon points="70,70 74,50 78,70"/><polygon points="77,70 80,55 83,70"/>
+        <polygon points="90,70 93,52 96,70"/><polygon points="278,70 281,53 284,70"/>
+        <polygon points="288,70 292,50 296,70"/><polygon points="295,70 298,56 301,70"/>
+      </g>
+      <line x1="28" y1="70" x2="28" y2="38" stroke="#4a8a20" stroke-width="2"/>
+      <circle cx="28" cy="34" r="5" fill="#ffee44"/>
+      <circle cx="22" cy="29" r="4.5" fill="#ff88aa"/><circle cx="28" cy="27" r="4.5" fill="#ff88aa"/>
+      <circle cx="34" cy="29" r="4.5" fill="#ff88aa"/><circle cx="34" cy="36" r="4.5" fill="#ff88aa"/>
+      <circle cx="28" cy="40" r="4.5" fill="#ff88aa"/><circle cx="22" cy="36" r="4.5" fill="#ff88aa"/>
+      <line x1="52" y1="70" x2="52" y2="32" stroke="#4a8a20" stroke-width="2"/>
+      <circle cx="52" cy="28" r="5" fill="#ffee44"/>
+      <circle cx="46" cy="23" r="4" fill="#ffaaff"/><circle cx="52" cy="21" r="4" fill="#ffaaff"/>
+      <circle cx="58" cy="23" r="4" fill="#ffaaff"/><circle cx="58" cy="30" r="4" fill="#ffaaff"/>
+      <circle cx="52" cy="34" r="4" fill="#ffaaff"/><circle cx="46" cy="30" r="4" fill="#ffaaff"/>
+      <line x1="340" y1="70" x2="340" y2="38" stroke="#4a8a20" stroke-width="2"/>
+      <circle cx="340" cy="34" r="5" fill="#ffee44"/>
+      <circle cx="334" cy="29" r="4.5" fill="#ff6666"/><circle cx="340" cy="27" r="4.5" fill="#ff6666"/>
+      <circle cx="346" cy="29" r="4.5" fill="#ff6666"/><circle cx="346" cy="36" r="4.5" fill="#ff6666"/>
+      <circle cx="340" cy="40" r="4.5" fill="#ff6666"/><circle cx="334" cy="36" r="4.5" fill="#ff6666"/>
+      <line x1="316" y1="70" x2="316" y2="32" stroke="#4a8a20" stroke-width="2"/>
+      <circle cx="316" cy="28" r="5" fill="#ffee44"/>
+      <circle cx="310" cy="23" r="4" fill="#cc88ff"/><circle cx="316" cy="21" r="4" fill="#cc88ff"/>
+      <circle cx="322" cy="23" r="4" fill="#cc88ff"/><circle cx="322" cy="30" r="4" fill="#cc88ff"/>
+      <circle cx="316" cy="34" r="4" fill="#cc88ff"/><circle cx="310" cy="30" r="4" fill="#cc88ff"/>
+      <line x1="358" y1="70" x2="358" y2="45" stroke="#4a8a20" stroke-width="1.5"/>
+      <circle cx="358" cy="42" r="4" fill="#ffee44"/>
+      <circle cx="353" cy="38" r="3.5" fill="#ffaa44"/><circle cx="358" cy="36" r="3.5" fill="#ffaa44"/>
+      <circle cx="363" cy="38" r="3.5" fill="#ffaa44"/><circle cx="363" cy="44" r="3.5" fill="#ffaa44"/>
+      <circle cx="358" cy="47" r="3.5" fill="#ffaa44"/><circle cx="353" cy="44" r="3.5" fill="#ffaa44"/>
+    </svg>
+    <div id="msg">タップして はじめよう！</div>
+    <button id="startBtn">はじめる！</button>
+  </div>
+</div>
+</div>
+
+<div id="reaction"><div class="emoji"></div></div>
+
+<script src="./audio-manager.js"></script>
+<script>
+const ANIMALS = [
+  { emoji: '🐶', name: 'いぬ' },
+  { emoji: '🐱', name: 'ねこ' },
+  { emoji: '🐰', name: 'うさぎ' },
+  { emoji: '🐹', name: 'ハムスター' },
+  { emoji: '🐻', name: 'くま' }
+];
+
+const TOTAL = 10;
+const STAY_TIME = 2800;
+const SPAWN_DELAY_MIN = 400;
+const SPAWN_DELAY_MAX = 900;
+const MAX_ACTIVE = 2;
+
+let score = 0, round = 0, running = false, gameState = 'idle';
+let moleTimers = Array(9).fill(null);
+let holeState = Array(9).fill(null);
+let targetAnimal = null;
+let totalCorrect = 0, totalWrong = 0;
+
+const moles = Array.from({length:9},(_,i)=>document.getElementById('m'+i));
+const holes = Array.from({length:9},(_,i)=>document.getElementById('h'+i));
+const spCvs = Array.from({length:9},(_,i)=>document.getElementById('sp'+i));
+const spCtx = spCvs.map(c=>c.getContext('2d'));
+const particles = Array.from({length:9},()=>[]);
+let animFrame = null;
+
+const HAPPY_COLORS = ['#fff9a0','#ffe040','#ffffff','#ffcc00','#aaffff','#ff88cc','#88ff88'];
+
+function spawnSparkles(i, colors) {
+  const cx=52, cy=52;
+  for(let p=0; p<16; p++){
+    const angle=Math.random()*Math.PI*2, sp=1.2+Math.random()*3;
+    particles[i].push({
+      x:cx, y:cy, vx:Math.cos(angle)*sp, vy:Math.sin(angle)*sp-1,
+      r:2.5+Math.random()*4, life:1.0, decay:0.03+Math.random()*0.03,
+      color:colors[Math.floor(Math.random()*colors.length)],
+      star:Math.random()<0.5
+    });
+  }
+  if(!animFrame) animLoop();
+}
+
+function drawStar(ctx,x,y,r,color,alpha){
+  ctx.save();ctx.globalAlpha=alpha;ctx.fillStyle=color;ctx.strokeStyle=color;ctx.lineWidth=r*0.6;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(x-r*1.4,y);ctx.lineTo(x+r*1.4,y);ctx.moveTo(x,y-r*1.4);ctx.lineTo(x,y+r*1.4);ctx.stroke();
+  ctx.lineWidth=r*0.3;ctx.beginPath();ctx.moveTo(x-r*0.8,y-r*0.8);ctx.lineTo(x+r*0.8,y+r*0.8);ctx.moveTo(x+r*0.8,y-r*0.8);ctx.lineTo(x-r*0.8,y+r*0.8);ctx.stroke();
+  ctx.beginPath();ctx.arc(x,y,r*0.35,0,Math.PI*2);ctx.fill();ctx.restore();
+}
+
+function animLoop(){
+  let any=false;
+  for(let i=0;i<9;i++){
+    const ctx=spCtx[i];ctx.clearRect(0,0,105,105);
+    if(particles[i].length===0) continue;
+    any=true;
+    particles[i]=particles[i].filter(p=>p.life>0);
+    for(const p of particles[i]){
+      p.x+=p.vx;p.y+=p.vy;p.vy+=0.1;p.life-=p.decay;
+      if(p.life<=0) continue;
+      if(p.star){drawStar(ctx,p.x,p.y,p.r,p.color,p.life);}
+      else{ctx.save();ctx.globalAlpha=p.life;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();ctx.restore();}
+    }
+  }
+  if(any){animFrame=requestAnimationFrame(animLoop);}else{animFrame=null;}
+}
+
+function updateScoreDisplay(){
+  const icons = document.getElementById('found-icons');
+  icons.innerHTML = '';
+  for(let i = 0; i < score; i++){
+    const sp = document.createElement('span');
+    sp.className = 'icon';
+    sp.textContent = targetAnimal.emoji;
+    icons.appendChild(sp);
+  }
+  const remain = TOTAL - round;
+  document.getElementById('remain-label').textContent = 'あと ' + remain;
+}
+
+function setMsg(v){document.getElementById('msg').textContent=v;}
+
+function resetMole(i){
+  moles[i].classList.remove('up','sinking','wrong-shake');
+  moles[i].style.cssText='';moles[i].textContent='';
+  particles[i]=[];spCtx[i].clearRect(0,0,105,105);
+  const wt = holes[i].querySelector('.wrong-text');
+  if(wt) wt.remove();
+}
+
+function hideMole(i){
+  resetMole(i);holes[i].classList.remove('flash-ok','flash-ng');
+  holes[i].dataset.active='0';holeState[i]=null;
+}
+
+function showMole(i){
+  if(!running||holes[i].dataset.active==='1') return;
+
+  let animal;
+  if(Math.random() < 0.40) {
+    animal = targetAnimal;
+  } else {
+    const others = ANIMALS.filter(a => a.emoji !== targetAnimal.emoji);
+    animal = others[Math.floor(Math.random()*others.length)];
+  }
+
+  holeState[i] = { animal };
+  holes[i].dataset.active = '1';
+  resetMole(i);
+  moles[i].textContent = animal.emoji;
+  void moles[i].offsetWidth;
+  moles[i].classList.add('up');
+
+  if(moleTimers[i]) clearTimeout(moleTimers[i]);
+  moleTimers[i] = setTimeout(()=>{
+    if(holes[i].dataset.active==='1'){
+      moles[i].classList.remove('up');
+      moles[i].classList.add('sinking');
+      setTimeout(()=>{ hideMole(i); scheduleNext(); }, 500);
+    }
+  }, STAY_TIME);
+}
+
+function scheduleNext(){
+  if(!running) return;
+  const activeCount = holes.filter(h=>h.dataset.active==='1').length;
+  if(activeCount >= MAX_ACTIVE) return;
+
+  const inactive = holes.map((h,idx)=>h.dataset.active!=='1'?idx:-1).filter(idx=>idx>=0);
+  if(inactive.length===0) return;
+  const pick = inactive[Math.floor(Math.random()*inactive.length)];
+  const delay = SPAWN_DELAY_MIN + Math.random()*(SPAWN_DELAY_MAX-SPAWN_DELAY_MIN);
+  setTimeout(()=>{ if(running) showMole(pick); }, delay);
+}
+
+function showReaction(emoji, x, y){
+  const el = document.getElementById('reaction');
+  const em = el.querySelector('.emoji');
+  em.textContent = emoji;
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  el.style.display = 'block';
+  em.style.animation = 'none';
+  void em.offsetWidth;
+  em.style.animation = '';
+  setTimeout(()=>{ el.style.display='none'; }, 800);
+}
+
+function whack(i){
+  if(!running||holes[i].dataset.active!=='1') return;
+  const st = holeState[i]; if(!st) return;
+
+  if(st.animal.emoji === targetAnimal.emoji) {
+    // 正解
+    clearTimeout(moleTimers[i]);
+    totalCorrect++;
+    round++;
+    score++;
+    holes[i].classList.add('flash-ok');
+    spawnSparkles(i, HAPPY_COLORS);
+    
+    // 正解の音！
+    AudioManager.playCorrect();
+
+    const rect = holes[i].getBoundingClientRect();
+    showReaction('⭕', rect.left + rect.width / 2, rect.top + rect.height / 2);
+    updateScoreDisplay();
+
+    moles[i].classList.remove('up');
+    moles[i].classList.add('sinking');
+    holes[i].dataset.active='0'; holeState[i]=null;
+
+    setTimeout(()=>{
+      hideMole(i);
+      if(round >= TOTAL) {
+        endGame();
+      } else {
+        scheduleNext();
+      }
+    }, 500);
+  } else {
+    // 間違い：ぷるぷる→ちがうよ〜→引っ込む
+    totalWrong++;
+    moles[i].classList.add('wrong-shake');
+    holes[i].classList.add('flash-ng');
+
+    // 不正解の音…
+    AudioManager.playWrong();
+
+    const wt = document.createElement('div');
+    wt.className = 'wrong-text';
+    wt.textContent = 'ちがうよ〜';
+    holes[i].appendChild(wt);
+
+    setTimeout(()=>{
+      moles[i].classList.remove('wrong-shake');
+      holes[i].classList.remove('flash-ng');
+      clearTimeout(moleTimers[i]);
+      moles[i].classList.remove('up');
+      moles[i].classList.add('sinking');
+      holes[i].dataset.active='0'; holeState[i]=null;
+      setTimeout(()=>{
+        hideMole(i);
+        scheduleNext();
+      }, 500);
+    }, 800);
+  }
+}
+
+function endGame(){
+  running = false;
+  gameState = 'idle';
+  moleTimers.forEach(t=>clearTimeout(t));
+  for(let i=0;i<9;i++) hideMole(i);
+
+  const overlay = document.getElementById('result-overlay');
+  document.getElementById('res-title').textContent = '💮 よくできたね！ 💮';
+  document.getElementById('res-stars').textContent = '🍭🍩🍪🍬🍫';
+  let foundStr = '';
+  for(let i=0;i<totalCorrect;i++) foundStr += targetAnimal.emoji;
+  document.getElementById('res-found').textContent = foundStr;
+  document.getElementById('res-detail').textContent = totalCorrect + 'ひき みつけたよ！';
+  overlay.classList.add('show');
+
+  // てってれ〜！
+  AudioManager.playClear();
+}
+
+holes.forEach((h,i)=>{
+  h.addEventListener('mousedown', e=>{ e.preventDefault(); whack(i); });
+  h.addEventListener('touchstart', e=>{ e.preventDefault(); whack(i); }, {passive:false});
+  h.dataset.active='0';
+});
+
+function showCountdown(cb){
+  const overlay = document.getElementById('countdown-overlay');
+  const num = document.getElementById('countdown-num');
+  overlay.classList.add('show');
+  const steps = ['3','2','1','GO!'];
+  let idx = 0;
+  function tick(){
+    num.textContent = steps[idx];
+    num.style.fontSize = steps[idx]==='GO!' ? '72px' : '96px';
+    num.classList.remove('pop'); void num.offsetWidth; num.classList.add('pop');
+    if(idx === steps.length-1){
+      setTimeout(()=>{ overlay.classList.remove('show'); cb(); }, 600);
+      return;
+    }
+    idx++; setTimeout(tick, 900);
+  }
+  tick();
+}
+
+function startGame(){
+  if(running || gameState==='countdown') return;
+  gameState = 'countdown';
+
+  targetAnimal = ANIMALS[Math.floor(Math.random()*ANIMALS.length)];
+  document.getElementById('quest-animal').textContent = targetAnimal.emoji;
+  document.getElementById('quest-name').textContent = targetAnimal.name;
+
+  score=0; round=0; totalCorrect=0; totalWrong=0;
+  updateScoreDisplay();
+  setMsg('');
+  for(let i=0;i<9;i++){ hideMole(i); }
+  moleTimers.forEach(t=>clearTimeout(t));
+  document.getElementById('result-overlay').classList.remove('show');
+
+  showCountdown(()=>{
+    gameState='running'; running=true;
+    scheduleNext();
+    setTimeout(scheduleNext, 500);
+  });
+}
+
+document.getElementById('startBtn').addEventListener('click', startGame);
+document.getElementById('startBtn2').addEventListener('click', startGame);
+document.getElementById('backBtn').addEventListener('click', (e) => {
+  e.preventDefault();
+  if (history.length > 1) {
+    history.back();
+  } else {
+    location.replace('index.html');
+  }
+});
+</script>
+</body>
+</html>

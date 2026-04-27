@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>どうぶつ じゃんけん</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  background: #fff5f0;
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+}
+.container {
+  text-align: center;
+  padding: 14px;
+  max-width: 420px;
+  width: 100%;
+}
+h1 {
+  font-size: 22px; font-weight: 900; color: #d06030;
+  margin-bottom: 4px; letter-spacing: 1px;
+}
+.subtitle {
+  font-size: 12px; color: #c09070; margin-bottom: 10px;
+}
+
+/* 対戦相手表示 */
+#opponent-area {
+  margin-bottom: 8px;
+}
+#opponent-emoji {
+  font-size: 64px; line-height: 1;
+}
+#opponent-name {
+  font-size: 16px; font-weight: 900; color: #a06040;
+  margin-top: 2px;
+}
+/* 進捗 */
+#progress {
+  font-size: 28px; font-weight: 900; color: #b08060;
+  letter-spacing: 6px; margin-bottom: 6px;
+}
+#win-marks {
+  font-size: 28px; letter-spacing: 6px; margin-bottom: 8px;
+}
+
+/* じゃんけんバトルエリア */
+#battle-area {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 8px; margin-bottom: 10px; min-height: 120px;
+}
+.hand-box {
+  width: 110px; height: 110px;
+  background: #fff;
+  border-radius: 18px;
+  border: 3px solid #e0d0c0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 60px;
+  box-shadow: 0 3px 10px rgba(180,120,60,0.1);
+  position: relative;
+}
+.hand-box.opponent { background: #fff8f0; }
+.hand-box.player { background: #f0f8ff; }
+.hand-box .hand-label {
+  position: absolute;
+  right: -40px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px; font-weight: 900;
+  color: #a09080;
+  white-space: nowrap;
+}
+/* 隠し状態 */
+.hand-box.hidden-hand {
+  background: linear-gradient(135deg, #e8d8c8, #d0c0b0);
+  font-size: 30px; color: rgba(160,120,80,0.5);
+}
+/* シルエットヒント */
+.hand-box.silhouette .hand-content {
+  filter: brightness(0);
+  opacity: 0.2;
+}
+
+#vs-text {
+  font-size: 24px; font-weight: 900; color: #d06030;
+}
+
+/* じゃんけんコール */
+#call-text {
+  font-size: 28px; font-weight: 900; color: #d06030;
+  min-height: 40px; margin-bottom: 8px;
+  animation: none;
+}
+#call-text.pop {
+  animation: call-pop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes call-pop { 0%{transform:scale(1.4);opacity:0} 100%{transform:scale(1);opacity:1} }
+
+/* 選択ボタン */
+#hand-choices {
+  display: flex; gap: 12px; justify-content: center;
+  margin-bottom: 10px;
+}
+.hand-btn {
+  width: 90px; height: 90px;
+  border: 3px solid #d0d8e0;
+  border-radius: 18px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 4px;
+  font-family: 'Zen Maru Gothic', sans-serif;
+}
+.hand-btn .emoji { font-size: 40px; line-height: 1; }
+.hand-btn .label { font-size: 12px; font-weight: 900; color: #8090a0; }
+.hand-btn:hover:not(:disabled) {
+  border-color: #ffcc44; transform: scale(1.08);
+  box-shadow: 0 4px 12px rgba(255,200,50,0.3);
+}
+.hand-btn:disabled { opacity: 0.4; cursor: default; transform: none; }
+.hand-btn.glow {
+  animation: btn-glow 0.8s ease-in-out infinite;
+  border-color: #ffcc44;
+  box-shadow: 0 0 12px rgba(255,200,50,0.4);
+}
+@keyframes btn-glow {
+  0%,100% { box-shadow: 0 0 8px rgba(255,200,50,0.3); }
+  50% { box-shadow: 0 0 18px rgba(255,200,50,0.6); }
+}
+.hand-btn.lose-dim {
+  opacity: 0.3;
+}
+
+#result {
+  font-size: 20px; font-weight: 900; min-height: 30px; margin-bottom: 8px;
+}
+#result.win { color: #4aaa50; }
+#result.lose { color: #e07050; }
+#result.draw { color: #c0a030; }
+
+.game-btn {
+  padding: 10px 28px;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-size: 16px; font-weight: 900; cursor: pointer;
+  border: 3px solid #d06030; border-radius: 12px;
+  background: rgba(220,100,50,0.85); color: #fff;
+  box-shadow: 0 4px 12px rgba(200,80,40,0.3);
+  transition: all 0.2s; visibility: hidden;
+}
+.game-btn:hover { background: rgba(200,80,30,0.95); transform: scale(1.04); }
+.game-btn.visible { visibility: visible; }
+
+/* 結果画面 */
+#result-overlay {
+  display: none; position: fixed;
+  top:0; left:0; width:100%; height:100%;
+  background: rgba(255,245,240,0.95);
+  z-index: 100; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px;
+}
+#result-overlay.show { display: flex; }
+#result-overlay .big { font-size: 26px; font-weight: 900; color: #d06030; }
+#result-overlay .opponents { font-size: 40px; letter-spacing: 8px; margin: 6px 0; }
+#result-overlay .detail { font-size: 15px; font-weight: 700; color: #b08060; }
+.restart-btn {
+  margin-top: 8px; padding: 10px 32px;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-size: 18px; font-weight: 900; cursor: pointer;
+  border: 3px solid #d06030; border-radius: 60px;
+  background: rgba(220,100,50,0.85); color: #fff;
+  box-shadow: 0 4px 0 #a04020; transition: all 0.2s;
+}
+.restart-btn:hover { background: rgba(200,80,30,0.95); }
+
+#flash-overlay {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  pointer-events: none; z-index: 90; opacity: 0;
+}
+#flash-overlay.flash { animation: flash-bang 0.6s ease-out forwards; }
+@keyframes flash-bang {
+  0% { opacity:0; background: radial-gradient(circle, rgba(255,255,200,0.9), rgba(255,220,180,0.3)); }
+  15% { opacity:1; } 100% { opacity:0; }
+}
+#sparkle-canvas {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  pointer-events: none; z-index: 91;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>✊ どうぶつ じゃんけん ✌️</h1>
+  <p class="subtitle">どうぶつに じゃんけんで かとう！</p>
+
+  <div id="opponent-area">
+    <div id="opponent-emoji">🐶</div>
+    <div id="opponent-name">いぬ</div>
+  </div>
+
+  <div id="battle-area">
+    <div class="hand-box opponent" id="opp-hand">
+      <span class="hand-content">❓</span>
+      <span class="hand-label">あいて</span>
+    </div>
+    <div id="vs-text">VS</div>
+    <div class="hand-box player" id="my-hand">
+      <span class="hand-content">❓</span>
+      <span class="hand-label">きみ</span>
+    </div>
+  </div>
+
+  <div id="call-text"></div>
+  <div id="result"></div>
+
+  <div id="hand-choices">
+    <button class="hand-btn" data-hand="rock"><span class="emoji">✊</span><span class="label">グー</span></button>
+    <button class="hand-btn" data-hand="scissors"><span class="emoji">✌️</span><span class="label">チョキ</span></button>
+    <button class="hand-btn" data-hand="paper"><span class="emoji">✋</span><span class="label">パー</span></button>
+  </div>
+
+  <div id="win-marks"></div>
+  <div id="progress"></div>
+
+  <button class="game-btn" id="nextBtn">つぎへ →</button>
+</div>
+
+<div id="result-overlay">
+  <div class="big" id="res-title"></div>
+  <div class="opponents" id="res-opponents"></div>
+  <div class="detail" id="res-detail"></div>
+  <button class="restart-btn" id="restartBtn">もういっかい！</button>
+</div>
+
+<div id="flash-overlay"></div>
+<canvas id="sparkle-canvas"></canvas>
+
+<script>
+const ANIMALS = [
+  { emoji: '🐶', name: 'いぬ' },
+  { emoji: '🐱', name: 'ねこ' },
+  { emoji: '🐰', name: 'うさぎ' },
+  { emoji: '🐻', name: 'くま' },
+  { emoji: '🐸', name: 'かえる' },
+  { emoji: '🐧', name: 'ぺんぎん' },
+  { emoji: '🦊', name: 'きつね' },
+  { emoji: '🐵', name: 'さる' },
+  { emoji: '🐹', name: 'ハムスター' },
+  { emoji: '🐼', name: 'パンダ' }
+];
+
+const HANDS = {
+  rock: { emoji: '✊', name: 'グー', beats: 'scissors' },
+  scissors: { emoji: '✌️', name: 'チョキ', beats: 'paper' },
+  paper: { emoji: '✋', name: 'パー', beats: 'rock' }
+};
+const HAND_KEYS = ['rock', 'scissors', 'paper'];
+
+const OPPONENTS_COUNT = 3;
+const WINS_NEEDED = 2;
+
+let opponents = [];
+let currentOpponentIdx = 0;
+let wins = 0;
+let losses = 0;
+let roundInProgress = false;
+let hasLostOnce = false; // この相手に1回負けたか
+let autoNextTimer = null;
+let defeated = []; // 倒した相手の絵文字
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function updateUI() {
+  const opp = opponents[currentOpponentIdx];
+  document.getElementById('opponent-emoji').textContent = opp.emoji;
+  document.getElementById('opponent-name').textContent = opp.name;
+
+  // 進捗: どうぶつ何匹目
+  const dots = [];
+  for (let i = 0; i < OPPONENTS_COUNT; i++) {
+    dots.push(i < currentOpponentIdx ? '🏆' : i === currentOpponentIdx ? '⭕' : '⚪');
+  }
+  document.getElementById('progress').textContent = dots.join(' ');
+
+  // 勝ちマーク
+  const wm = '⭐'.repeat(wins) + '⚪'.repeat(WINS_NEEDED - wins);
+  document.getElementById('win-marks').textContent = wm;
+}
+
+function resetHands() {
+  const oppHand = document.getElementById('opp-hand');
+  const myHand = document.getElementById('my-hand');
+  oppHand.className = 'hand-box opponent hidden-hand';
+  oppHand.querySelector('.hand-content').textContent = '❓';
+  myHand.className = 'hand-box player hidden-hand';
+  myHand.querySelector('.hand-content').textContent = '❓';
+}
+
+function showHints(oppHandKey) {
+  // ヒント1: 相手の手をシルエットで見せる
+  const oppBox = document.getElementById('opp-hand');
+  oppBox.className = 'hand-box opponent silhouette';
+  oppBox.querySelector('.hand-content').textContent = HANDS[oppHandKey].emoji;
+
+  // ヒント2: 勝てる手をキラキラ、負ける手を暗く
+  const winHand = Object.keys(HANDS).find(k => HANDS[k].beats === oppHandKey);
+  const loseHand = oppHandKey; // 相手と同じ手の「beats」が自分の負け
+
+  document.querySelectorAll('.hand-btn').forEach(btn => {
+    const h = btn.dataset.hand;
+    btn.classList.remove('glow', 'lose-dim');
+    if (h === winHand) {
+      btn.classList.add('glow');
+    } else if (HANDS[oppHandKey].beats === h) {
+      btn.classList.add('lose-dim');
+    }
+  });
+}
+
+function clearHints() {
+  document.querySelectorAll('.hand-btn').forEach(btn => {
+    btn.classList.remove('glow', 'lose-dim');
+  });
+}
+
+function enableButtons(enable) {
+  document.querySelectorAll('.hand-btn').forEach(btn => {
+    btn.disabled = !enable;
+  });
+}
+
+async function startBattle() {
+  if (autoNextTimer) { clearTimeout(autoNextTimer); autoNextTimer = null; }
+  roundInProgress = false;
+
+  resetHands();
+  clearHints();
+  document.getElementById('result').textContent = '';
+  document.getElementById('result').className = '';
+  document.getElementById('nextBtn').classList.remove('visible');
+  document.getElementById('call-text').textContent = '';
+
+  updateUI();
+
+  // 相手の手を決める（ガチランダム）
+  const oppHandKey = HAND_KEYS[Math.floor(Math.random() * 3)];
+
+  // 1回負けてたらヒント出す
+  if (hasLostOnce) {
+    showHints(oppHandKey);
+  }
+
+  enableButtons(true);
+
+  // ボタンクリック待ち
+  return new Promise(resolve => {
+    const handler = async (e) => {
+      const btn = e.currentTarget;
+      const myHandKey = btn.dataset.hand;
+
+      // 全ボタンからリスナー除去
+      document.querySelectorAll('.hand-btn').forEach(b => {
+        b.removeEventListener('click', handler);
+      });
+      enableButtons(false);
+      clearHints();
+
+      // じゃん・けん・ぽん演出
+      await doCall(myHandKey, oppHandKey);
+
+      resolve();
+    };
+
+    document.querySelectorAll('.hand-btn').forEach(btn => {
+      btn.addEventListener('click', handler);
+    });
+  });
+}
+
+async function doCall(myHandKey, oppHandKey) {
+  const callEl = document.getElementById('call-text');
+
+  // じゃん！
+  callEl.textContent = 'じゃん！';
+  callEl.classList.remove('pop'); void callEl.offsetWidth; callEl.classList.add('pop');
+  await sleep(600);
+
+  // けん！
+  callEl.textContent = 'けん！';
+  callEl.classList.remove('pop'); void callEl.offsetWidth; callEl.classList.add('pop');
+  await sleep(600);
+
+  // ぽん！
+  callEl.textContent = 'ぽん！';
+  callEl.classList.remove('pop'); void callEl.offsetWidth; callEl.classList.add('pop');
+  await sleep(300);
+
+  // 手を表示
+  const oppBox = document.getElementById('opp-hand');
+  const myBox = document.getElementById('my-hand');
+  oppBox.className = 'hand-box opponent';
+  oppBox.querySelector('.hand-content').textContent = HANDS[oppHandKey].emoji;
+  myBox.className = 'hand-box player';
+  myBox.querySelector('.hand-content').textContent = HANDS[myHandKey].emoji;
+
+  await sleep(500);
+
+  // 判定
+  const resultEl = document.getElementById('result');
+  if (myHandKey === oppHandKey) {
+    // あいこ
+    resultEl.textContent = '😐 あいこ！';
+    resultEl.className = 'draw';
+    callEl.textContent = '';
+
+    await sleep(1200);
+    startBattle();
+  } else if (HANDS[myHandKey].beats === oppHandKey) {
+    // 勝ち！
+    wins++;
+    updateUI();
+    resultEl.textContent = '🎉 かち！';
+    resultEl.className = 'win';
+    callEl.textContent = '';
+
+    doFlash();
+    const rect = myBox.getBoundingClientRect();
+    spawnSparkles(rect.left + rect.width / 2, rect.top + rect.height / 2);
+
+    await sleep(1000);
+
+    if (wins >= WINS_NEEDED) {
+      // この相手に勝利！
+      defeated.push(opponents[currentOpponentIdx].emoji);
+
+      if (currentOpponentIdx >= OPPONENTS_COUNT - 1) {
+        // 全員に勝った！
+        showFinalResult();
+        return;
+      }
+
+      // 次の相手へ
+      currentOpponentIdx++;
+      wins = 0;
+      losses = 0;
+      hasLostOnce = false;
+      resultEl.textContent = '';
+
+      await sleep(500);
+      startBattle();
+    } else {
+      await sleep(500);
+      startBattle();
+    }
+  } else {
+    // 負け
+    losses++;
+    hasLostOnce = true;
+    resultEl.textContent = '😢 まけ… つぎは ヒントが でるよ！';
+    resultEl.className = 'lose';
+    callEl.textContent = '';
+
+    await sleep(1500);
+
+    if (losses >= 2) {
+      // 2回負け→再戦
+      losses = 0;
+      wins = 0;
+      resultEl.textContent = 'もういっかい しょうぶ！';
+      await sleep(1000);
+    }
+
+    startBattle();
+  }
+}
+
+function showFinalResult() {
+  const overlay = document.getElementById('result-overlay');
+  document.getElementById('res-title').textContent = '🏆 ぜんいんに かったよ！ 🏆';
+  document.getElementById('res-opponents').textContent = defeated.join('');
+  document.getElementById('res-detail').textContent = 'じゃんけん つよいね！';
+  overlay.classList.add('show');
+}
+
+function resetGame() {
+  const shuffled = shuffle(ANIMALS);
+  opponents = shuffled.slice(0, OPPONENTS_COUNT);
+  currentOpponentIdx = 0;
+  wins = 0;
+  losses = 0;
+  hasLostOnce = false;
+  defeated = [];
+  document.getElementById('result-overlay').classList.remove('show');
+  startBattle();
+}
+
+document.getElementById('restartBtn').addEventListener('click', resetGame);
+
+// ======== キラキラ ========
+const spCanvas = document.getElementById('sparkle-canvas');
+const spCtx = spCanvas.getContext('2d');
+let sparkles = [];
+let sparkleAnim = null;
+
+function resizeSparkleCanvas() {
+  spCanvas.width = window.innerWidth;
+  spCanvas.height = window.innerHeight;
+}
+resizeSparkleCanvas();
+window.addEventListener('resize', resizeSparkleCanvas);
+
+const SPARKLE_COLORS = ['#ffee44','#ff88cc','#88eeff','#aaffaa','#ffaa44','#ffffff','#ff8844'];
+
+function spawnSparkles(cx, cy) {
+  for (let i = 0; i < 25; i++) {
+    const angle = Math.random() * Math.PI * 2, speed = 2 + Math.random() * 5;
+    sparkles.push({
+      x: cx, y: cy, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 2,
+      r: 3 + Math.random() * 4, life: 1, decay: 0.015 + Math.random() * 0.015,
+      color: SPARKLE_COLORS[Math.floor(Math.random() * SPARKLE_COLORS.length)],
+      star: Math.random() < 0.5, rot: Math.random() * Math.PI * 2, rotSpeed: (Math.random() - 0.5) * 0.15
+    });
+  }
+  if (!sparkleAnim) sparkleLoop();
+}
+
+function sparkleLoop() {
+  spCtx.clearRect(0, 0, spCanvas.width, spCanvas.height);
+  sparkles = sparkles.filter(p => p.life > 0);
+  for (const p of sparkles) {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.vx *= 0.99;
+    p.life -= p.decay; p.rot += p.rotSpeed;
+    if (p.life <= 0) continue;
+    spCtx.save(); spCtx.globalAlpha = p.life;
+    spCtx.translate(p.x, p.y); spCtx.rotate(p.rot);
+    if (p.star) {
+      spCtx.fillStyle = p.color; spCtx.beginPath();
+      for (let i = 0; i < 4; i++) { const a = (Math.PI / 2) * i;
+        spCtx.lineTo(Math.cos(a - 0.15) * p.r * 0.3, Math.sin(a - 0.15) * p.r * 0.3);
+        spCtx.lineTo(Math.cos(a) * p.r * 1.5, Math.sin(a) * p.r * 1.5); }
+      spCtx.closePath(); spCtx.fill();
+    } else {
+      spCtx.fillStyle = p.color;
+      spCtx.beginPath(); spCtx.arc(0, 0, p.r, 0, Math.PI * 2); spCtx.fill();
+    }
+    spCtx.restore();
+  }
+  if (sparkles.length > 0) { sparkleAnim = requestAnimationFrame(sparkleLoop); }
+  else { sparkleAnim = null; }
+}
+
+function doFlash() {
+  const fl = document.getElementById('flash-overlay');
+  fl.classList.remove('flash'); void fl.offsetWidth; fl.classList.add('flash');
+}
+
+// ======== 開始 ========
+resetGame();
+</script>
+</body>
+</html>

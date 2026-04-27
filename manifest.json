@@ -1,7 +1,7 @@
 {
-  "name": "やさしいせかい",
-  "short_name": "やさしいせかい",
-  "description": "おうちに かえろう — 幼児向けミニゲーム",
+  "name": "にこにこどうぶつらんど",
+  "short_name": "どうぶつらんど",
+  "description": "にこにこどうぶつらんど — 幼児向けミニゲーム",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

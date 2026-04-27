@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>すうじで よぼう</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  background: #f5f0ff;
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+}
+.container {
+  text-align: center;
+  padding: 14px;
+  max-width: 440px;
+  width: 100%;
+}
+h1 {
+  font-size: 22px; font-weight: 900; color: #6a50b0;
+  margin-bottom: 4px; letter-spacing: 1px;
+}
+.subtitle {
+  font-size: 12px; color: #9a80c0; margin-bottom: 10px;
+}
+
+#score-area {
+  background: rgba(255,255,255,0.8);
+  border-radius: 12px; padding: 6px 14px; margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; min-height: 36px;
+  box-shadow: 0 2px 8px rgba(100,80,180,0.1);
+}
+#found-icons { font-size: 22px; letter-spacing: 2px; display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; }
+#found-icons .icon { display: inline-block; animation: icon-pop 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes icon-pop { 0%{transform:scale(0)} 100%{transform:scale(1)} }
+#remain-label { font-size: 14px; font-weight: 900; color: #8a70a0; white-space: nowrap; }
+
+#level-label {
+  font-size: 13px; font-weight: 900; color: #9a80c0;
+  margin-bottom: 6px;
+}
+
+/* お題 */
+#quest-area {
+  background: rgba(255,255,255,0.85);
+  border-radius: 16px; padding: 12px 16px; margin-bottom: 12px;
+  box-shadow: 0 2px 10px rgba(100,80,180,0.1);
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+#quest-emoji { font-size: 50px; line-height: 1; animation: quest-bounce 2s ease-in-out infinite; }
+@keyframes quest-bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+#quest-info { text-align: left; }
+#quest-name { font-size: 16px; font-weight: 900; color: #6a50b0; }
+#quest-number {
+  font-size: 28px; font-weight: 900; color: #d06030;
+  margin-top: 2px;
+}
+
+/* 扉エリア */
+#doors-area {
+  display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.door-wrap {
+  position: relative;
+  width: 88px; height: 140px;
+  perspective: 400px;
+}
+/* 家の構造 */
+.house-roof {
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 50px solid transparent;
+  border-right: 50px solid transparent;
+  border-bottom: 28px solid #d07040;
+  z-index: 1;
+}
+.house-roof-inner {
+  position: absolute;
+  top: 4px; left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 44px solid transparent;
+  border-right: 44px solid transparent;
+  border-bottom: 24px solid #e08850;
+  z-index: 2;
+}
+.house-wall {
+  position: absolute;
+  top: 26px; left: 50%;
+  transform: translateX(-50%);
+  width: 84px; height: 96px;
+  background: linear-gradient(180deg, #ffe8c8, #ffd8a8);
+  border: 2px solid #d0a878;
+  border-radius: 0 0 4px 4px;
+  z-index: 0;
+}
+.house-window {
+  position: absolute;
+  top: 32px; left: 50%;
+  transform: translateX(-50%);
+  width: 22px; height: 18px;
+  background: #a0d8f0;
+  border: 2px solid #c0a878;
+  border-radius: 3px;
+  z-index: 3;
+}
+.house-window::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 0;
+  width: 100%; height: 2px;
+  background: #c0a878;
+  transform: translateY(-50%);
+}
+.house-window::before {
+  content: '';
+  position: absolute;
+  left: 50%; top: 0;
+  width: 2px; height: 100%;
+  background: #c0a878;
+  transform: translateX(-50%);
+}
+.door {
+  width: 48px; height: 64px;
+  position: absolute;
+  bottom: 21px; left: 50%;
+  transform: translateX(-50%);
+  cursor: pointer;
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.34,1.56,0.64,1);
+  z-index: 4;
+  transform-origin: left center;
+}
+.door.open {
+  transform: translateX(-50%) rotateY(-85deg);
+  transform-origin: left center;
+}
+.door-front {
+  position: absolute;
+  width: 100%; height: 100%;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 8px,
+      rgba(120,70,30,0.08) 8px,
+      rgba(120,70,30,0.08) 9px
+    ),
+    linear-gradient(180deg, #dbb580, #c49a60, #b8894a, #c49a60, #d4a870);
+  border-radius: 4px 4px 2px 2px;
+  border: 2px solid #a07840;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 2px;
+  backface-visibility: hidden;
+  box-shadow: 0 2px 6px rgba(120,80,30,0.2);
+}
+.door-front .door-number {
+  font-size: 24px; font-weight: 900; color: #6a4020;
+  text-shadow: 0 1px 2px rgba(255,255,255,0.4);
+}
+.door-front .door-knob {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #ffe888, #ccaa44);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  position: absolute;
+  right: 5px; top: 50%;
+  transform: translateY(-50%);
+}
+.door-front:hover {
+  filter: brightness(1.06);
+}
+/* 扉の裏 */
+.door-back {
+  position: absolute;
+  width: 100%; height: 100%;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 8px,
+      rgba(100,60,20,0.1) 8px,
+      rgba(100,60,20,0.1) 9px
+    ),
+    linear-gradient(180deg, #c49060, #a87840, #9a6830);
+  border-radius: 4px 4px 2px 2px;
+  border: 2px solid #8a6030;
+  backface-visibility: hidden;
+  transform: rotateY(180deg);
+}
+/* 扉の後ろの動物 */
+.door-animal {
+  position: absolute;
+  bottom: 21px; left: 50%;
+  transform: translateX(-50%);
+  width: 48px; height: 64px;
+  background: #fff8f0;
+  border-radius: 4px 4px 2px 2px;
+  border: 2px solid #e0d0c0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 34px;
+  z-index: 3;
+}
+.door-animal.revealed {
+  animation: animal-appear 0.5s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes animal-appear { 0%{transform:translateX(-50%) scale(0.5);opacity:0} 100%{transform:translateX(-50%) scale(1);opacity:1} }
+
+/* 扉のラベル */
+.door-label {
+  text-align: center;
+  font-size: 11px; font-weight: 900;
+  color: #9a80c0;
+  margin-top: 2px;
+}
+
+.door-wrap.found .door-front {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 8px,
+      rgba(60,100,30,0.08) 8px,
+      rgba(60,100,30,0.08) 9px
+    ),
+    linear-gradient(180deg, #c0dda0, #a0c880, #90b870);
+  border-color: #70a040;
+}
+.door-wrap.found .door-back {
+  background: linear-gradient(180deg, #a0c070, #80a850);
+  border-color: #608830;
+}
+.door-wrap.found .house-wall {
+  background: linear-gradient(180deg, #e8ffe0, #d0f0c0);
+  border-color: #90c070;
+}
+
+.door.wrong-shake {
+  animation: door-shake 0.5s ease-in-out;
+}
+@keyframes door-shake {
+  0%,100%{transform:translateX(0)} 20%{transform:translateX(-5px)}
+  40%{transform:translateX(5px)} 60%{transform:translateX(-3px)} 80%{transform:translateX(3px)}
+}
+
+#msg {
+  font-size: 17px; font-weight: 700; min-height: 26px; margin-bottom: 8px;
+}
+#msg.correct { color: #4aaa50; }
+#msg.wrong { color: #e8aa00; }
+
+.game-btn {
+  padding: 10px 28px;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-size: 16px; font-weight: 900; cursor: pointer;
+  border: 3px solid #7a60c0; border-radius: 12px;
+  background: rgba(130,100,200,0.85); color: #fff;
+  box-shadow: 0 4px 12px rgba(100,80,180,0.3);
+  transition: all 0.2s; visibility: hidden;
+}
+.game-btn:hover { background: rgba(110,80,180,0.95); transform: scale(1.04); }
+.game-btn.visible { visibility: visible; }
+
+/* 結果画面 */
+#result-overlay {
+  display: none; position: fixed;
+  top:0; left:0; width:100%; height:100%;
+  background: rgba(245,240,255,0.95);
+  z-index: 100; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px;
+}
+#result-overlay.show { display: flex; }
+#result-overlay .big { font-size: 26px; font-weight: 900; color: #6a50b0; }
+#result-overlay .found-list { font-size: 32px; letter-spacing: 6px; text-align: center; margin: 8px 0; }
+#result-overlay .detail { font-size: 15px; font-weight: 700; color: #8a70a0; }
+.restart-btn {
+  margin-top: 8px; padding: 10px 32px;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-size: 18px; font-weight: 900; cursor: pointer;
+  border: 3px solid #7a60c0; border-radius: 60px;
+  background: rgba(130,100,200,0.85); color: #fff;
+  box-shadow: 0 4px 0 #5a40a0; transition: all 0.2s;
+}
+.restart-btn:hover { background: rgba(110,80,180,0.95); }
+
+#flash-overlay {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  pointer-events: none; z-index: 90; opacity: 0;
+}
+#flash-overlay.flash { animation: flash-bang 0.6s ease-out forwards; }
+@keyframes flash-bang {
+  0% { opacity:0; background: radial-gradient(circle, rgba(255,255,200,0.9), rgba(220,200,255,0.3)); }
+  15% { opacity:1; } 100% { opacity:0; }
+}
+#sparkle-canvas {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  pointer-events: none; z-index: 91;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🚪 すうじで よぼう 🚪</h1>
+  <p class="subtitle">すうじを みつけて とびらを あけよう！</p>
+
+  <div id="score-area">
+    <div id="found-icons"></div>
+    <div id="remain-label"></div>
+  </div>
+
+  <div id="level-label"></div>
+
+  <div id="quest-area">
+    <div id="quest-emoji">🐱</div>
+    <div id="quest-info">
+      <div id="quest-name">ねこ を よぼう！</div>
+      <div id="quest-number">すうじは 3</div>
+    </div>
+  </div>
+
+  <div id="doors-area"></div>
+
+  <div id="msg"></div>
+  <button class="game-btn" id="nextBtn">つぎの どうぶつ →</button>
+</div>
+
+<div id="result-overlay">
+  <div class="big" id="res-title"></div>
+  <div class="found-list" id="res-found"></div>
+  <div class="detail" id="res-detail"></div>
+  <button class="restart-btn" id="restartBtn">もういっかい！</button>
+</div>
+
+<div id="flash-overlay"></div>
+<canvas id="sparkle-canvas"></canvas>
+
+<script>
+const ANIMALS = [
+  { emoji: '🐶', name: 'いぬ' },
+  { emoji: '🐱', name: 'ねこ' },
+  { emoji: '🐰', name: 'うさぎ' },
+  { emoji: '🐹', name: 'ハムスター' },
+  { emoji: '🐻', name: 'くま' },
+  { emoji: '🐸', name: 'かえる' },
+  { emoji: '🐧', name: 'ぺんぎん' },
+  { emoji: '🦊', name: 'きつね' },
+  { emoji: '🐵', name: 'さる' },
+  { emoji: '🐼', name: 'パンダ' }
+];
+
+const LEVELS = [
+  { doorCount: 3, callCount: 3 },
+  { doorCount: 5, callCount: 3 },
+  { doorCount: 7, callCount: 3 }
+];
+const CLEARS_PER_LEVEL = 1; // 全匹呼んだら次レベル
+
+let levelIdx = 0;
+let doorAnimals = [];   // 各扉の後ろにいる動物
+let callOrder = [];     // 呼ぶ順番
+let callIdx = 0;
+let foundAnimals = [];
+let phase = 'idle';     // idle, playing, animating
+let autoNextTimer = null;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function updateLevel() {
+  const lv = LEVELS[levelIdx];
+  const progress = '🟢'.repeat(levelIdx) + '⭕' + '⚪'.repeat(LEVELS.length - levelIdx - 1);
+  document.getElementById('level-label').textContent = 'とびら ' + lv.doorCount + 'こ  ' + progress;
+}
+
+function updateScore() {
+  const icons = document.getElementById('found-icons');
+  icons.innerHTML = '';
+  for (const e of foundAnimals) {
+    const sp = document.createElement('span');
+    sp.className = 'icon'; sp.textContent = e;
+    icons.appendChild(sp);
+  }
+  document.getElementById('remain-label').textContent = 'あと ' + (callOrder.length - callIdx);
+}
+
+function buildDoors() {
+  const lv = LEVELS[levelIdx];
+  const area = document.getElementById('doors-area');
+  area.innerHTML = '';
+
+  // 動物をランダムに割り当て
+  const shuffledAnimals = shuffle(ANIMALS).slice(0, lv.doorCount);
+  doorAnimals = shuffledAnimals;
+
+  // 呼ぶ順番（全匹をランダム順で）
+  callOrder = shuffle([...Array(lv.doorCount).keys()].slice(0, lv.callCount));
+  callIdx = 0;
+
+  for (let i = 0; i < lv.doorCount; i++) {
+    const wrap = document.createElement('div');
+    wrap.className = 'door-wrap';
+    wrap.id = 'dwrap-' + i;
+
+    wrap.innerHTML = `
+      <div class="house-roof"></div>
+      <div class="house-roof-inner"></div>
+      <div class="house-window"></div>
+      <div class="house-wall"></div>
+      <div class="door-animal" id="danimal-${i}">${doorAnimals[i].emoji}</div>
+      <div class="door" id="door-${i}">
+        <div class="door-front">
+          <span class="door-number">${i + 1}</span>
+          <span class="door-knob"></span>
+        </div>
+        <div class="door-back"></div>
+      </div>
+      <div class="door-label">${i + 1}</div>
+    `;
+
+    wrap.addEventListener('click', () => tapDoor(i));
+    area.appendChild(wrap);
+  }
+}
+
+function showQuest() {
+  if (callIdx >= callOrder.length) return;
+  const targetIdx = callOrder[callIdx];
+  const animal = doorAnimals[targetIdx];
+  const doorNum = targetIdx + 1;
+
+  document.getElementById('quest-emoji').textContent = animal.emoji;
+  document.getElementById('quest-name').textContent = animal.name + ' を よぼう！';
+  document.getElementById('quest-number').textContent = 'すうじは ' + doorNum;
+  document.getElementById('msg').textContent = '';
+  document.getElementById('msg').className = '';
+  document.getElementById('nextBtn').classList.remove('visible');
+  updateScore();
+}
+
+function startRound() {
+  if (autoNextTimer) { clearTimeout(autoNextTimer); autoNextTimer = null; }
+  phase = 'playing';
+  buildDoors();
+  updateLevel();
+  showQuest();
+}
+
+function tapDoor(doorIdx) {
+  if (phase !== 'playing') return;
+  if (callIdx >= callOrder.length) return;
+
+  const targetIdx = callOrder[callIdx];
+  const door = document.getElementById('door-' + doorIdx);
+  const wrap = document.getElementById('dwrap-' + doorIdx);
+  const animal = document.getElementById('danimal-' + doorIdx);
+
+  if (wrap.classList.contains('found')) return; // 既に開いてる
+
+  if (doorIdx === targetIdx) {
+    // 正解！扉を開く
+    phase = 'animating';
+    door.classList.add('open');
+    animal.classList.add('revealed');
+    wrap.classList.add('found');
+
+    foundAnimals.push(doorAnimals[doorIdx].emoji);
+    callIdx++;
+
+    document.getElementById('msg').textContent = '⭕ ' + doorAnimals[doorIdx].name + ' でてきた！';
+    document.getElementById('msg').className = 'correct';
+
+    doFlash();
+    const rect = wrap.getBoundingClientRect();
+    spawnSparkles(rect.left + rect.width / 2, rect.top + rect.height / 2);
+
+    updateScore();
+
+    setTimeout(() => {
+      if (callIdx >= callOrder.length) {
+        // このレベルクリア
+        if (levelIdx >= LEVELS.length - 1) {
+          // 全クリ！
+          setTimeout(showFinalResult, 800);
+          return;
+        }
+        levelIdx++;
+        document.getElementById('msg').textContent = 'つぎは とびら ' + LEVELS[levelIdx].doorCount + 'こ！';
+        autoNextTimer = setTimeout(() => startRound(), 2000);
+      } else {
+        phase = 'playing';
+        showQuest();
+      }
+    }, 1200);
+  } else {
+    // 間違い
+    door.classList.remove('wrong-shake');
+    void door.offsetWidth;
+    door.classList.add('wrong-shake');
+
+    // ちょっとだけ開けて見せる
+    door.classList.add('open');
+    animal.classList.add('revealed');
+
+    document.getElementById('msg').textContent = 'ちがうよ〜 ' + doorAnimals[doorIdx].name + ' だった！';
+    document.getElementById('msg').className = 'wrong';
+
+    setTimeout(() => {
+      door.classList.remove('open', 'wrong-shake');
+      animal.classList.remove('revealed');
+      document.getElementById('msg').textContent = '';
+      document.getElementById('msg').className = '';
+    }, 1200);
+  }
+}
+
+function showFinalResult() {
+  const overlay = document.getElementById('result-overlay');
+  document.getElementById('res-title').textContent = '⭐ よくできたね！ ⭐';
+  document.getElementById('res-found').textContent = foundAnimals.join('');
+  document.getElementById('res-detail').textContent = 'みんな よべたね！';
+  overlay.classList.add('show');
+}
+
+function resetGame() {
+  levelIdx = 0;
+  foundAnimals = [];
+  callIdx = 0;
+  document.getElementById('result-overlay').classList.remove('show');
+  startRound();
+}
+
+document.getElementById('restartBtn').addEventListener('click', resetGame);
+
+// ======== キラキラ ========
+const spCanvas = document.getElementById('sparkle-canvas');
+const spCtx = spCanvas.getContext('2d');
+let sparkles = [];
+let sparkleAnim = null;
+
+function resizeSparkleCanvas() {
+  spCanvas.width = window.innerWidth;
+  spCanvas.height = window.innerHeight;
+}
+resizeSparkleCanvas();
+window.addEventListener('resize', resizeSparkleCanvas);
+
+const SPARKLE_COLORS = ['#ffee44','#ff88cc','#88eeff','#aaffaa','#ffaa44','#ffffff','#cc88ff'];
+
+function spawnSparkles(cx, cy) {
+  for (let i = 0; i < 25; i++) {
+    const angle = Math.random() * Math.PI * 2, speed = 2 + Math.random() * 5;
+    sparkles.push({
+      x: cx, y: cy, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 2,
+      r: 3 + Math.random() * 4, life: 1, decay: 0.015 + Math.random() * 0.015,
+      color: SPARKLE_COLORS[Math.floor(Math.random() * SPARKLE_COLORS.length)],
+      star: Math.random() < 0.5, rot: Math.random() * Math.PI * 2, rotSpeed: (Math.random() - 0.5) * 0.15
+    });
+  }
+  if (!sparkleAnim) sparkleLoop();
+}
+
+function sparkleLoop() {
+  spCtx.clearRect(0, 0, spCanvas.width, spCanvas.height);
+  sparkles = sparkles.filter(p => p.life > 0);
+  for (const p of sparkles) {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.vx *= 0.99;
+    p.life -= p.decay; p.rot += p.rotSpeed;
+    if (p.life <= 0) continue;
+    spCtx.save(); spCtx.globalAlpha = p.life;
+    spCtx.translate(p.x, p.y); spCtx.rotate(p.rot);
+    if (p.star) {
+      spCtx.fillStyle = p.color; spCtx.beginPath();
+      for (let i = 0; i < 4; i++) { const a = (Math.PI / 2) * i;
+        spCtx.lineTo(Math.cos(a - 0.15) * p.r * 0.3, Math.sin(a - 0.15) * p.r * 0.3);
+        spCtx.lineTo(Math.cos(a) * p.r * 1.5, Math.sin(a) * p.r * 1.5); }
+      spCtx.closePath(); spCtx.fill();
+    } else {
+      spCtx.fillStyle = p.color;
+      spCtx.beginPath(); spCtx.arc(0, 0, p.r, 0, Math.PI * 2); spCtx.fill();
+    }
+    spCtx.restore();
+  }
+  if (sparkles.length > 0) { sparkleAnim = requestAnimationFrame(sparkleLoop); }
+  else { sparkleAnim = null; }
+}
+
+function doFlash() {
+  const fl = document.getElementById('flash-overlay');
+  fl.classList.remove('flash'); void fl.offsetWidth; fl.classList.add('flash');
+}
+
+// ======== 開始 ========
+startRound();
+</script>
+</body>
+</html>

@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>おうちに かえろう</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#fde68a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="やさしいせかい">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  background: #e8f4e0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+.container {
+  text-align: center;
+  width: 100%;
+  max-width: 420px;
+  padding: 2vw;
+}
+h1 {
+  font-size: clamp(18px, 5vw, 22px); font-weight: 900; color: #4a8a30;
+  margin-bottom: 2px;
+}
+.subtitle {
+  font-size: clamp(10px, 2.8vw, 12px); color: #7aaa60; margin-bottom: 2vw;
+}
+#score-area {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; margin-bottom: 1.5vw;
+  font-size: clamp(16px, 5vw, 20px);
+}
+#remain-label {
+  font-size: clamp(12px, 3.5vw, 14px); font-weight: 900; color: #6a9a50;
+}
+#msg {
+  font-size: clamp(14px, 4.2vw, 17px); font-weight: 700; min-height: 24px; margin-bottom: 1vw;
+  color: #4a8a30;
+}
+
+#game-canvas {
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(60,140,40,0.15);
+  background: #fff;
+  touch-action: none;
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  aspect-ratio: 360 / 400;
+}
+
+#permission-btn {
+  display: none;
+  margin: 4vw auto;
+  padding: 3.5vw 8vw;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-size: clamp(14px, 4vw, 16px); font-weight: 900;
+  border: 3px solid #5aaa40; border-radius: 60px;
+  background: rgba(100,190,70,0.85); color: #fff;
+  box-shadow: 0 4px 12px rgba(60,160,40,0.3);
+  cursor: pointer;
+}
+#permission-btn:hover { background: rgba(80,170,50,0.95); }
+
+#level-label {
+  font-size: clamp(11px, 3.2vw, 13px); font-weight: 900; color: #7aaa60;
+  margin-bottom: 1vw;
+}
+
+/* 結果画面 */
+#result-overlay {
+  display: none; position: fixed;
+  top:0; left:0; width:100%; height:100%;
+  background: rgba(232,244,224,0.95);
+  z-index: 100; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px;
+}
+#result-overlay.show { display: flex; }
+#result-overlay .big { font-size: clamp(22px, 6.5vw, 26px); font-weight: 900; color: #4a8a30; }
+#result-overlay .found-list { font-size: clamp(26px, 8vw, 32px); letter-spacing: 6px; }
+#result-overlay .detail { font-size: clamp(13px, 3.8vw, 15px); font-weight: 700; color: #6a9a50; }
+.restart-btn {
+  margin-top: 2vw; padding: 2.5vw 8vw;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-size: clamp(15px, 4.5vw, 18px); font-weight: 900; cursor: pointer;
+  border: 3px solid #5aaa40; border-radius: 60px;
+  background: rgba(100,190,70,0.85); color: #fff;
+  box-shadow: 0 4px 0 #3a8a20;
+}
+
+#flash-overlay {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  pointer-events: none; z-index: 90; opacity: 0;
+}
+#flash-overlay.flash { animation: flash-bang 0.6s ease-out forwards; }
+@keyframes flash-bang {
+  0% { opacity:0; background: radial-gradient(circle, rgba(255,255,200,0.9), rgba(200,255,200,0.3)); }
+  15% { opacity:1; } 100% { opacity:0; }
+}
+#sparkle-canvas {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  pointer-events: none; z-index: 91;
+}
+/* 戻るボタン */
+.back-btn {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  width: auto;
+  height: 44px;
+  padding: 0 16px;
+  background: #fff;
+  border: 3px solid #5aaa40;
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 900;
+  color: #5aaa40;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(60,140,40,0.15);
+  z-index: 1000;
+  text-decoration: none;
+  transition: transform 0.2s;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.back-btn:active { transform: scale(0.9); }
+}
+</style>
+</head>
+<body>
+<a href="index.html" class="back-btn" id="backBtn">もどる</a>
+
+<div class="container">
+  <h1>🏠 おうちに かえろう 🏠</h1>
+  <p class="subtitle">スマホを かたむけて おうちに いれよう！</p>
+
+  <div id="level-label"></div>
+  <div id="score-area">
+    <span id="found-icons"></span>
+    <span id="remain-label"></span>
+  </div>
+  <div id="msg">スマホを かたむけてね！</div>
+
+  <canvas id="game-canvas" width="360" height="400"></canvas>
+
+  <button id="permission-btn">🎮 センサーをつかう</button>
+</div>
+
+<div id="result-overlay">
+  <div class="big" id="res-title"></div>
+  <div class="found-list" id="res-found"></div>
+  <div class="detail" id="res-detail"></div>
+  <button class="restart-btn" id="restartBtn">もういっかい！</button>
+</div>
+
+<div id="flash-overlay"></div>
+<canvas id="sparkle-canvas"></canvas>
+
+<script src="./audio-manager.js"></script>
+<script>
+const CW = 360, CH = 400;
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+
+const ANIMALS = ['🐶','🐱','🐰','🐹','🐸','🐧','🦊','🐻','🐵','🐼'];
+
+// rocks: 円形障害物（跳ね返る）, ponds: 楕円の池（落ちたら戻る）, ghosts: お化け（触れたら戻る、左右往復+ふわふわ）
+const LEVELS = [
+  // ステージ1: 真ん中の岩を避けてゴール
+  {
+    animal: 0,
+    startX: CW/2, startY: CH-60,
+    homeX: CW/2, homeY: 50, homeR: 30,
+    rocks: [{ x: CW/2, y: 200, r: 55 }],
+    ponds: [],
+    ghosts: []
+  },
+  // ステージ2: 真ん中の池を避けてゴール
+  {
+    animal: 1,
+    startX: CW/2, startY: CH-60,
+    homeX: CW/2, homeY: 50, homeR: 30,
+    rocks: [],
+    ponds: [{ x: CW/2, y: 200, rx: 78, ry: 46 }],
+    ghosts: []
+  },
+  // ステージ3: お化けが左右にゆっくり往復（ふわふわ上下）
+  {
+    animal: 2,
+    startX: CW/2, startY: CH-60,
+    homeX: CW/2, homeY: 50, homeR: 30,
+    rocks: [],
+    ponds: [],
+    ghosts: [{ y: 200, minX: 40, maxX: CW-40, speed: 0.84, dir: 1, r: 22 }]
+  },
+  // ステージ4: 岩2 + 池2 + 縦移動お化け1（真ん中を縦に往復）
+  {
+    animal: 3,
+    startX: 50, startY: CH-60,
+    homeX: CW-50, homeY: 50, homeR: 28,
+    rocks: [
+      { x: 170, y: 130, r: 32 },
+      { x: 200, y: 310, r: 32 }
+    ],
+    ponds: [
+      { x: 40, y: 170, rx: 60, ry: 45 },
+      { x: CW-40, y: 240, rx: 60, ry: 45 }
+    ],
+    ghosts: [
+      { x: CW/2, axis: 'y', minY: 175, maxY: 275, speed: 0.72, dir: 1, r: 22 }
+    ]
+  },
+  // ステージ5 (ラスボス): 岩2 + 池2 + お化け3（横2+縦1で全方向に警戒）
+  {
+    animal: 4,
+    startX: 50, startY: CH-60,
+    homeX: CW-50, homeY: 50, homeR: 28,
+    rocks: [
+      { x: 175, y: 180, r: 28 },   // 中央ゲート
+      { x: 250, y: 325, r: 28 }    // 右下の死角封じ
+    ],
+    ponds: [
+      { x: CW-40, y: 150, rx: 45, ry: 28 },  // 右上（右端に接触）
+      { x: 85,  y: 260, rx: 50, ry: 30 }   // 左下（新）
+    ],
+    ghosts: [
+      { y: 90,  minX: 50, maxX: 230, speed: 0.72, dir: 1, r: 22 },                    // 家の左を巡回
+      { x: CW/2, axis: 'y', minY: 115, maxY: 170, speed: 0.72, dir: 1, r: 22 },        // 縦移動ゲート（新）
+      { y: 290, minX: 150, maxX: 280, speed: 0.72, dir: 1, r: 22 }                    // 下段で通せんぼ
+    ]
+  }
+];
+
+let levelIdx = 0;
+let ballX, ballY, ballVX, ballVY;
+const BALL_R = 18;
+const FRICTION = 0.97;
+const ACCEL = 0.4;
+let tiltX = 0, tiltY = 0;
+let sensorEnabled = false;
+let useMouse = false;
+let goalReached = false;
+let foundAnimals = [];
+let animFrame = null;
+let frameCount = 0;
+let dying = false;
+let dyingFrame = 0;
+const DYING_DURATION = 36; // フェード往復の合計フレーム
+
+// センサー許可
+async function requestSensor() {
+  if (typeof DeviceOrientationEvent !== 'undefined' &&
+      typeof DeviceOrientationEvent.requestPermission === 'function') {
+    // iOS
+    try {
+      const perm = await DeviceOrientationEvent.requestPermission();
+      if (perm === 'granted') {
+        enableSensor();
+        document.getElementById('permission-btn').style.display = 'none';
+      }
+    } catch(e) {
+      console.log('Sensor permission denied', e);
+      enableMouseFallback();
+    }
+  } else {
+    enableSensor();
+  }
+}
+
+function enableSensor() {
+  sensorEnabled = true;
+  window.addEventListener('deviceorientation', (e) => {
+    // gamma = 左右傾き (-90~90), beta = 前後傾き (-180~180)
+    tiltX = (e.gamma || 0) / 90; // -1 ~ 1
+    tiltY = ((e.beta || 0) - 30) / 90; // 30度を中立に
+    tiltX = Math.max(-1, Math.min(1, tiltX));
+    tiltY = Math.max(-1, Math.min(1, tiltY));
+  });
+}
+
+function enableMouseFallback() {
+  useMouse = true;
+  document.getElementById('msg').textContent = 'ドラッグで うごかせるよ！';
+
+  let dragging = false;
+  canvas.addEventListener('mousedown', (e) => { dragging = true; updateMouse(e); });
+  canvas.addEventListener('mousemove', (e) => { if (dragging) updateMouse(e); });
+  canvas.addEventListener('mouseup', () => { dragging = false; tiltX = 0; tiltY = 0; });
+
+  canvas.addEventListener('touchstart', (e) => { e.preventDefault(); dragging = true; updateTouch(e); }, {passive:false});
+  canvas.addEventListener('touchmove', (e) => { e.preventDefault(); if (dragging) updateTouch(e); }, {passive:false});
+  canvas.addEventListener('touchend', () => { dragging = false; tiltX = 0; tiltY = 0; });
+
+  function updateMouse(e) {
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) / rect.width * 2 - 1;
+    const my = (e.clientY - rect.top) / rect.height * 2 - 1;
+    tiltX = mx * 0.6;
+    tiltY = my * 0.6;
+  }
+  function updateTouch(e) {
+    const t = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const mx = (t.clientX - rect.left) / rect.width * 2 - 1;
+    const my = (t.clientY - rect.top) / rect.height * 2 - 1;
+    tiltX = mx * 0.6;
+    tiltY = my * 0.6;
+  }
+}
+
+// 初期化チェック
+function initSensor() {
+  if (typeof DeviceOrientationEvent !== 'undefined' &&
+      typeof DeviceOrientationEvent.requestPermission === 'function') {
+    // iOS: ボタンで許可を求める
+    const btn = document.getElementById('permission-btn');
+    btn.style.display = 'block';
+    btn.addEventListener('click', requestSensor);
+    enableMouseFallback(); // タッチも使えるように
+  } else if ('DeviceOrientationEvent' in window) {
+    // Android等
+    enableSensor();
+    // テスト: 1秒後にデータが来なければマウスフォールバック
+    setTimeout(() => {
+      if (!sensorEnabled || (tiltX === 0 && tiltY === 0)) {
+        enableMouseFallback();
+      }
+    }, 1500);
+  } else {
+    enableMouseFallback();
+  }
+}
+
+function startLevel() {
+  goalReached = false;
+  dying = false;
+  dyingFrame = 0;
+  const lv = LEVELS[levelIdx];
+  ballX = lv.startX;
+  ballY = lv.startY;
+  ballVX = 0;
+  ballVY = 0;
+
+  // お化けを開始位置にリセット（axis='y'で縦移動、既定は横移動）
+  for (const g of lv.ghosts) {
+    if (g.axis === 'y') {
+      g.y = g.minY;
+    } else {
+      g.x = g.minX;
+    }
+    g.dir = 1;
+    g.phase = Math.random() * Math.PI * 2;
+  }
+
+  document.getElementById('level-label').textContent =
+    'レベル ' + (levelIdx + 1) + ' / ' + LEVELS.length;
+  updateScore();
+
+  if (!animFrame) gameLoop();
+}
+
+function triggerDeath() {
+  if (dying) return;
+  dying = true;
+  dyingFrame = 0;
+  ballVX = 0;
+  ballVY = 0;
+  document.getElementById('msg').textContent = 'ふわっ… もういっかい！';
+}
+
+function updateScore() {
+  const icons = document.getElementById('found-icons');
+  icons.textContent = foundAnimals.join('');
+  document.getElementById('remain-label').textContent =
+    'あと ' + (LEVELS.length - foundAnimals.length);
+}
+
+function gameLoop() {
+  if (goalReached) return;
+  frameCount++;
+  const lv = LEVELS[levelIdx];
+
+  // ふわっと戻る演出中: 中間点でボールをスタート地点へ、時間経過で通常復帰
+  if (dying) {
+    dyingFrame++;
+    if (dyingFrame === Math.floor(DYING_DURATION / 2)) {
+      ballX = lv.startX;
+      ballY = lv.startY;
+      ballVX = 0;
+      ballVY = 0;
+    }
+    if (dyingFrame >= DYING_DURATION) {
+      dying = false;
+      document.getElementById('msg').textContent = 'スマホを かたむけてね！';
+    }
+    draw();
+    animFrame = requestAnimationFrame(gameLoop);
+    return;
+  }
+
+  // お化けの往復（縦 or 横）
+  for (const g of lv.ghosts) {
+    if (g.axis === 'y') {
+      g.y += g.speed * g.dir;
+      if (g.y >= g.maxY) { g.y = g.maxY; g.dir = -1; }
+      if (g.y <= g.minY) { g.y = g.minY; g.dir = 1; }
+    } else {
+      g.x += g.speed * g.dir;
+      if (g.x >= g.maxX) { g.x = g.maxX; g.dir = -1; }
+      if (g.x <= g.minX) { g.x = g.minX; g.dir = 1; }
+    }
+  }
+
+  // 物理演算
+  ballVX += tiltX * ACCEL;
+  ballVY += tiltY * ACCEL;
+  ballVX *= FRICTION;
+  ballVY *= FRICTION;
+  ballX += ballVX;
+  ballY += ballVY;
+
+  // 岩との衝突（円-円、法線方向で反射）
+  for (const r of lv.rocks) {
+    const dx = ballX - r.x;
+    const dy = ballY - r.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const minDist = BALL_R + r.r;
+    if (dist < minDist && dist > 0) {
+      const overlap = minDist - dist;
+      const nx = dx / dist, ny = dy / dist;
+      ballX += nx * overlap;
+      ballY += ny * overlap;
+      const dot = ballVX * nx + ballVY * ny;
+      ballVX -= 2 * dot * nx * 0.6;
+      ballVY -= 2 * dot * ny * 0.6;
+    }
+  }
+
+  // 画面端
+  if (ballX < BALL_R) { ballX = BALL_R; ballVX = Math.abs(ballVX) * 0.5; }
+  if (ballX > CW - BALL_R) { ballX = CW - BALL_R; ballVX = -Math.abs(ballVX) * 0.5; }
+  if (ballY < BALL_R) { ballY = BALL_R; ballVY = Math.abs(ballVY) * 0.5; }
+  if (ballY > CH - BALL_R) { ballY = CH - BALL_R; ballVY = -Math.abs(ballVY) * 0.5; }
+
+  // 池判定（楕円の中に入ったら死亡）
+  for (const p of lv.ponds) {
+    const ex = (ballX - p.x) / p.rx;
+    const ey = (ballY - p.y) / p.ry;
+    if (ex*ex + ey*ey < 1) {
+      triggerDeath();
+      draw();
+      animFrame = requestAnimationFrame(gameLoop);
+      return;
+    }
+  }
+
+  // お化け判定（距離、ふわふわ分も加味）
+  for (const g of lv.ghosts) {
+    const bob = Math.sin(frameCount * 0.08 + g.phase) * 6;
+    const gx = g.axis === 'y' ? g.x + bob : g.x;
+    const gy = g.axis === 'y' ? g.y       : g.y + bob;
+    const dx = ballX - gx;
+    const dy = ballY - gy;
+    if (Math.sqrt(dx*dx + dy*dy) < BALL_R + g.r) {
+      triggerDeath();
+      draw();
+      animFrame = requestAnimationFrame(gameLoop);
+      return;
+    }
+  }
+
+  // ゴール判定
+  const gdx = ballX - lv.homeX;
+  const gdy = ballY - lv.homeY;
+  if (Math.sqrt(gdx*gdx + gdy*gdy) < lv.homeR) {
+    onGoal();
+    return;
+  }
+
+  draw();
+  animFrame = requestAnimationFrame(gameLoop);
+}
+
+function draw() {
+  const lv = LEVELS[levelIdx];
+  ctx.clearRect(0, 0, CW, CH);
+
+  // 背景
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, CH);
+  bgGrad.addColorStop(0, '#c8eaff');
+  bgGrad.addColorStop(0.5, '#d8f0d0');
+  bgGrad.addColorStop(1, '#a8d890');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, CW, CH);
+
+  // 雲
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  const cloudOff = (frameCount * 0.2) % (CW + 100) - 50;
+  ctx.beginPath(); ctx.ellipse(cloudOff, 30, 30, 14, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cloudOff - 15, 34, 20, 10, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cloudOff + 18, 34, 22, 11, 0, 0, Math.PI*2); ctx.fill();
+
+  // おうち（ゴール）
+  const hx = lv.homeX, hy = lv.homeY, hr = lv.homeR;
+  // 家の壁
+  ctx.fillStyle = '#ffe8c8';
+  ctx.fillRect(hx - hr, hy - hr*0.4, hr*2, hr*1.4);
+  ctx.strokeStyle = '#d0a878';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(hx - hr, hy - hr*0.4, hr*2, hr*1.4);
+  // 屋根
+  ctx.fillStyle = '#d07040';
+  ctx.beginPath();
+  ctx.moveTo(hx - hr - 6, hy - hr*0.4);
+  ctx.lineTo(hx, hy - hr*1.2);
+  ctx.lineTo(hx + hr + 6, hy - hr*0.4);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#a05030';
+  ctx.stroke();
+  // ドア
+  ctx.fillStyle = '#c49a60';
+  ctx.fillRect(hx - 8, hy + hr*0.2, 16, hr*0.7);
+  // 窓
+  ctx.fillStyle = '#a0d8f0';
+  ctx.fillRect(hx - hr*0.6, hy - hr*0.1, 12, 10);
+  ctx.fillRect(hx + hr*0.2, hy - hr*0.1, 12, 10);
+  // 「おうち」ラベル
+  ctx.font = '10px "Zen Maru Gothic",sans-serif';
+  ctx.fillStyle = '#8a6a40';
+  ctx.textAlign = 'center';
+  ctx.fillText('おうち', hx, hy + hr + 16);
+
+  // 池（お化けより奥に描画）
+  for (const p of lv.ponds) {
+    // 外側の濡れた縁
+    ctx.fillStyle = '#79c5e8';
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, p.rx + 4, p.ry + 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // 水面本体
+    const pGrad = ctx.createRadialGradient(p.x, p.y - p.ry*0.3, p.rx*0.1, p.x, p.y, p.rx);
+    pGrad.addColorStop(0, '#b6e3f4');
+    pGrad.addColorStop(0.6, '#5fb5e0');
+    pGrad.addColorStop(1, '#3585b0');
+    ctx.fillStyle = pGrad;
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, p.rx, p.ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // 波紋アニメ
+    const rippleT = ((frameCount * 0.018) % 1);
+    ctx.strokeStyle = 'rgba(255,255,255,' + ((1 - rippleT) * 0.55).toFixed(2) + ')';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, p.rx * (0.2 + rippleT * 0.7), p.ry * (0.2 + rippleT * 0.7), 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // 木（🌳 + 濃い緑オーラでコントラスト強化）
+  for (const r of lv.rocks) {
+    // 影
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    ctx.beginPath();
+    ctx.ellipse(r.x, r.y + r.r * 0.85, r.r * 0.85, r.r * 0.22, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // 濃い緑の背面オーラ
+    const tGrad = ctx.createRadialGradient(r.x, r.y, r.r * 0.2, r.x, r.y, r.r * 1.1);
+    tGrad.addColorStop(0, 'rgba(18, 65, 28, 0.65)');
+    tGrad.addColorStop(0.7, 'rgba(18, 65, 28, 0.25)');
+    tGrad.addColorStop(1, 'rgba(18, 65, 28, 0)');
+    ctx.fillStyle = tGrad;
+    ctx.beginPath();
+    ctx.arc(r.x, r.y, r.r * 1.2, 0, Math.PI * 2);
+    ctx.fill();
+    // 🌳（大きめ + カラー絵文字フォント明示）
+    ctx.font = (r.r * 2.5) + 'px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🌳', r.x, r.y);
+  }
+
+  // お化け（axis='y'で縦移動、既定は横移動）
+  for (const g of lv.ghosts) {
+    const bob = Math.sin(frameCount * 0.08 + g.phase) * 6;
+    const gx = g.axis === 'y' ? g.x + bob : g.x;
+    const gy = g.axis === 'y' ? g.y       : g.y + bob;
+    // 影
+    ctx.fillStyle = 'rgba(0,0,0,0.12)';
+    ctx.beginPath();
+    ctx.ellipse(gx, gy + 24, 18, 4.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // 背面に薄紫のオーラ（視認性アップ）
+    const gGrad = ctx.createRadialGradient(gx, gy, 4, gx, gy, 30);
+    gGrad.addColorStop(0, 'rgba(150,110,200,0.6)');
+    gGrad.addColorStop(0.6, 'rgba(170,130,210,0.25)');
+    gGrad.addColorStop(1, 'rgba(180,150,220,0)');
+    ctx.fillStyle = gGrad;
+    ctx.beginPath();
+    ctx.arc(gx, gy, 32, 0, Math.PI * 2);
+    ctx.fill();
+    // 👻（ちょっと大きめ）
+    ctx.font = '46px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('👻', gx, gy);
+  }
+
+  // 動物ボール
+  const bounceY = Math.sin(frameCount * 0.1) * 2;
+  // 影
+  ctx.fillStyle = 'rgba(0,0,0,0.15)';
+  ctx.beginPath();
+  ctx.ellipse(ballX, ballY + BALL_R + 6, BALL_R * 0.8, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // 白い背景円
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.beginPath();
+  ctx.arc(ballX, ballY + bounceY, BALL_R + 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(180,160,120,0.3)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // 絵文字（全身絵文字はカラーフォント明示で安定表示）
+  ctx.font = (BALL_R * 2.5) + 'px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(ANIMALS[lv.animal], ballX, ballY + bounceY);
+
+  // スタート地点マーク
+  ctx.font = '10px "Zen Maru Gothic",sans-serif';
+  ctx.fillStyle = 'rgba(100,160,80,0.4)';
+  ctx.textAlign = 'center';
+  ctx.fillText('スタート', lv.startX, lv.startY + BALL_R + 12);
+
+  // 傾きインジケーター
+  ctx.fillStyle = 'rgba(100,180,60,0.3)';
+  ctx.beginPath();
+  ctx.arc(CW - 30, CH - 30, 16, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(60,140,30,0.6)';
+  ctx.beginPath();
+  ctx.arc(CW - 30 + tiltX * 10, CH - 30 + tiltY * 10, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // ふわっとフェード（池落ち・お化け接触時）
+  if (dying) {
+    const t = dyingFrame / DYING_DURATION;
+    const alpha = t < 0.5 ? t * 2 : (1 - t) * 2;
+    ctx.fillStyle = 'rgba(255,255,255,' + (alpha * 0.75).toFixed(2) + ')';
+    ctx.fillRect(0, 0, CW, CH);
+  }
+}
+
+function onGoal() {
+  goalReached = true;
+  animFrame = null;
+  const lv = LEVELS[levelIdx];
+  foundAnimals.push(ANIMALS[lv.animal]);
+  updateScore();
+
+  document.getElementById('msg').textContent = '🎉 おうちに ついたよ！';
+
+  // 正解の音！
+  AudioManager.playCorrect();
+
+  doFlash();
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = rect.width / CW;
+  const scaleY = rect.height / CH;
+  spawnSparkles(rect.left + lv.homeX * scaleX, rect.top + lv.homeY * scaleY);
+
+  levelIdx++;
+  if (levelIdx >= LEVELS.length) {
+    setTimeout(showFinalResult, 1500);
+  } else {
+    setTimeout(() => {
+      document.getElementById('msg').textContent = 'つぎの レベル！';
+      setTimeout(() => startLevel(), 800);
+    }, 1500);
+  }
+}
+
+function showFinalResult() {
+  document.getElementById('res-title').textContent = '⭐ よくできたね！ ⭐';
+  document.getElementById('res-found').textContent = foundAnimals.join('');
+  document.getElementById('res-detail').textContent = 'みんな おうちに かえれたよ！';
+  document.getElementById('result-overlay').classList.add('show');
+
+  // てってれ〜！
+  AudioManager.playClear();
+}
+
+function resetGame() {
+  levelIdx = 0;
+  foundAnimals = [];
+  goalReached = false;
+  document.getElementById('result-overlay').classList.remove('show');
+  document.getElementById('msg').textContent = 'スマホを かたむけてね！';
+  startLevel();
+}
+
+document.getElementById('restartBtn').addEventListener('click', resetGame);
+document.getElementById('backBtn').addEventListener('click', (e) => {
+  e.preventDefault();
+  if (history.length > 1) {
+    history.back();
+  } else {
+    location.replace('index.html');
+  }
+});
+
+// ======== キラキラ ========
+const spCanvas = document.getElementById('sparkle-canvas');
+const spCtx = spCanvas.getContext('2d');
+let sparkles = [];
+let sparkleAnim = null;
+
+function resizeSparkleCanvas() {
+  spCanvas.width = window.innerWidth;
+  spCanvas.height = window.innerHeight;
+}
+resizeSparkleCanvas();
+window.addEventListener('resize', resizeSparkleCanvas);
+
+const SPARKLE_COLORS = ['#ffee44','#ff88cc','#88eeff','#aaffaa','#ffaa44','#ffffff','#88ff88'];
+
+function spawnSparkles(cx, cy) {
+  for (let i = 0; i < 25; i++) {
+    const angle = Math.random() * Math.PI * 2, speed = 2 + Math.random() * 5;
+    sparkles.push({
+      x: cx, y: cy, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 2,
+      r: 3 + Math.random() * 4, life: 1, decay: 0.015 + Math.random() * 0.015,
+      color: SPARKLE_COLORS[Math.floor(Math.random() * SPARKLE_COLORS.length)],
+      star: Math.random() < 0.5, rot: Math.random() * Math.PI * 2, rotSpeed: (Math.random() - 0.5) * 0.15
+    });
+  }
+  if (!sparkleAnim) sparkleLoop();
+}
+
+function sparkleLoop() {
+  spCtx.clearRect(0, 0, spCanvas.width, spCanvas.height);
+  sparkles = sparkles.filter(p => p.life > 0);
+  for (const p of sparkles) {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.vx *= 0.99;
+    p.life -= p.decay; p.rot += p.rotSpeed;
+    if (p.life <= 0) continue;
+    spCtx.save(); spCtx.globalAlpha = p.life;
+    spCtx.translate(p.x, p.y); spCtx.rotate(p.rot);
+    if (p.star) {
+      spCtx.fillStyle = p.color; spCtx.beginPath();
+      for (let i = 0; i < 4; i++) { const a = (Math.PI / 2) * i;
+        spCtx.lineTo(Math.cos(a - 0.15) * p.r * 0.3, Math.sin(a - 0.15) * p.r * 0.3);
+        spCtx.lineTo(Math.cos(a) * p.r * 1.5, Math.sin(a) * p.r * 1.5); }
+      spCtx.closePath(); spCtx.fill();
+    } else {
+      spCtx.fillStyle = p.color;
+      spCtx.beginPath(); spCtx.arc(0, 0, p.r, 0, Math.PI * 2); spCtx.fill();
+    }
+    spCtx.restore();
+  }
+  if (sparkles.length > 0) { sparkleAnim = requestAnimationFrame(sparkleLoop); }
+  else { sparkleAnim = null; }
+}
+
+function doFlash() {
+  const fl = document.getElementById('flash-overlay');
+  fl.classList.remove('flash'); void fl.offsetWidth; fl.classList.add('flash');
+}
+
+// ======== 開始 ========
+initSensor();
+startLevel();
+
+// ======== Service Worker 登録 ========
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>

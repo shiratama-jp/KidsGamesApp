@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>どうぶつを さがそう</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  background: #f0f8ee;
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+}
+.container {
+  text-align: center;
+  padding: 14px;
+  max-width: 440px;
+  width: 100%;
+}
+h1 {
+  font-size: 24px; font-weight: 900; color: #4a8a30;
+  margin-bottom: 4px; letter-spacing: 2px;
+}
+.subtitle {
+  font-size: 12px; color: #7aaa60; margin-bottom: 10px;
+}
+
+/* スコア */
+#score-area {
+  background: rgba(255,255,255,0.8);
+  border-radius: 12px; padding: 6px 14px; margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; min-height: 36px;
+  box-shadow: 0 2px 8px rgba(60,140,40,0.1);
+}
+#found-icons { font-size: 22px; letter-spacing: 2px; display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; }
+#found-icons .icon { display: inline-block; animation: icon-pop 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes icon-pop { 0%{transform:scale(0)} 100%{transform:scale(1)} }
+#remain-label { font-size: 14px; font-weight: 900; color: #6a9a50; white-space: nowrap; }
+
+/* お題 */
+#quest {
+  font-size: 16px; font-weight: 900; color: #4a8a30;
+  margin-bottom: 8px; min-height: 24px;
+}
+
+/* カードグリッド */
+#card-grid {
+  display: flex; flex-direction: column; gap: 8px;
+  align-items: center; margin-bottom: 10px;
+}
+.card-row {
+  display: flex; gap: 6px; justify-content: center;
+}
+.card-row-label {
+  font-size: 11px; font-weight: 700; color: #8aba70; margin-bottom: 2px;
+}
+
+.card {
+  width: 64px; height: 72px;
+  border-radius: 12px;
+  border: 3px solid #c8e0b8;
+  background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 38px; line-height: 1;
+  cursor: default;
+  transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  position: relative;
+  user-select: none;
+}
+.card.highlight {
+  border-color: #ffcc44;
+  box-shadow: 0 0 0 4px rgba(255,200,50,0.4), 0 4px 12px rgba(255,200,50,0.2);
+  animation: card-glow 1.2s ease-in-out infinite;
+}
+@keyframes card-glow {
+  0%,100% { box-shadow: 0 0 0 4px rgba(255,200,50,0.3), 0 4px 12px rgba(255,200,50,0.2); }
+  50% { box-shadow: 0 0 0 6px rgba(255,200,50,0.5), 0 4px 16px rgba(255,200,50,0.3); }
+}
+.card.found {
+  border-color: #88cc66;
+  background: #f0ffe8;
+  opacity: 0.6;
+}
+.card.hidden {
+  background: linear-gradient(135deg, #a8d888, #7ab860);
+  border-color: #6aa848;
+  cursor: pointer;
+  font-size: 22px;
+  color: rgba(255,255,255,0.7);
+}
+.card.hidden:hover {
+  transform: scale(1.06);
+  border-color: #ffcc44;
+}
+.card.silhouette {
+  background: #fff;
+  border-color: #c8e0b8;
+  cursor: pointer;
+}
+.card.silhouette .emoji-wrap {
+  filter: brightness(0);
+  opacity: 0.25;
+}
+.card.silhouette:hover {
+  transform: scale(1.06);
+  border-color: #ffcc44;
+}
+.card.peeking {
+  background: #fff;
+  border-color: #c8e0b8;
+  cursor: pointer;
+  overflow: hidden;
+}
+.card.peeking .emoji-wrap {
+  position: relative;
+}
+.card.peeking:hover {
+  transform: scale(1.06);
+  border-color: #ffcc44;
+}
+.card.revealed {
+  background: #fff;
+  border-color: #c8e0b8;
+  cursor: pointer;
+}
+.card.revealed:hover {
+  transform: scale(1.06);
+  border-color: #ffcc44;
+}
+.card.wrong-shake {
+  animation: card-shake 0.5s ease-in-out;
+}
+@keyframes card-shake {
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-5px)}
+  40%{transform:translateX(5px)}
+  60%{transform:translateX(-3px)}
+  80%{transform:translateX(3px)}
+}
+
+/* メッセージ */
+#result {
+  font-size: 17px; font-weight: 700; min-height: 26px; margin-bottom: 8px;
+}
+#result.correct { color: #4aaa50; }
+#result.wrong { color: #e8aa00; }
+
+/* ボタン */
+.game-btn {
+  padding: 10px 28px;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-size: 16px; font-weight: 900; cursor: pointer;
+  border: 3px solid #5aaa40; border-radius: 12px;
+  background: rgba(100,190,70,0.85); color: #fff;
+  box-shadow: 0 4px 12px rgba(60,160,40,0.3);
+  transition: all 0.2s;
+}
+.game-btn:hover { background: rgba(80,170,50,0.95); transform: scale(1.04); }
+
+#start-btn { margin-bottom: 10px; }
+#start-btn.hide { display: none; }
+
+/* 結果画面 */
+#result-overlay {
+  display: none; position: fixed;
+  top:0; left:0; width:100%; height:100%;
+  background: rgba(240,248,238,0.95);
+  z-index: 100; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px;
+}
+#result-overlay.show { display: flex; }
+#result-overlay .big { font-size: 28px; font-weight: 900; color: #4a8a30; }
+#result-overlay .found-list { font-size: 32px; letter-spacing: 6px; text-align: center; margin: 8px 0; }
+#result-overlay .detail { font-size: 16px; font-weight: 700; color: #6a9a50; }
+.restart-btn {
+  margin-top: 12px; padding: 10px 32px;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-size: 18px; font-weight: 900; cursor: pointer;
+  border: 3px solid #5aaa40; border-radius: 60px;
+  background: rgba(100,190,70,0.85); color: #fff;
+  box-shadow: 0 4px 0 #3a8a20; transition: all 0.2s;
+}
+.restart-btn:hover { background: rgba(80,170,50,0.95); }
+
+/* フラッシュ */
+#flash-overlay {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  pointer-events: none; z-index: 90; opacity: 0;
+}
+#flash-overlay.flash { animation: flash-bang 0.6s ease-out forwards; }
+@keyframes flash-bang {
+  0% { opacity:0; background: radial-gradient(circle, rgba(255,255,200,0.9), rgba(200,255,150,0.3)); }
+  15% { opacity:1; } 100% { opacity:0; }
+}
+#sparkle-canvas {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  pointer-events: none; z-index: 91;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🔍 どうぶつを さがそう 🔍</h1>
+  <p class="subtitle">おなじ どうぶつは どこかな？</p>
+
+  <div id="score-area">
+    <div id="found-icons"></div>
+    <div id="remain-label">あと 5</div>
+  </div>
+
+  <div id="quest"></div>
+
+  <div id="card-grid">
+    <div class="card-row-label">おてほん</div>
+    <div class="card-row" id="row-top"></div>
+    <div class="card-row-label" id="bottom-label">さがそう！</div>
+    <div class="card-row" id="row-bottom"></div>
+  </div>
+
+  <div id="result"></div>
+  <button class="game-btn" id="start-btn" onclick="startGame()">はじめる！</button>
+</div>
+
+<div id="result-overlay">
+  <div class="big" id="res-title"></div>
+  <div class="found-list" id="res-found"></div>
+  <div class="detail" id="res-detail"></div>
+  <button class="restart-btn" id="restartBtn">もういっかい！</button>
+</div>
+
+<div id="flash-overlay"></div>
+<canvas id="sparkle-canvas"></canvas>
+
+<script>
+const ALL_ANIMALS = ['🐶','🐱','🐰','🐹','🐻','🐸','🐧','🦊','🐮','🐷','🐵','🐔','🦁','🐯','🐨'];
+const COUNT = 5;
+
+let topAnimals = [];    // 上段（お手本）
+let bottomAnimals = []; // 下段（シャッフル済み）
+let currentTarget = 0;  // 今探してるindex（上段の何番目か）
+let round = 0;
+let foundItems = [];
+let missCount = 0;      // 現在のお題でのミス回数
+let gamePhase = 'preview'; // preview, playing, done
+let bottomStates = [];  // 'hidden','silhouette','revealed','found'
+
+function pickAnimals(){
+  const shuffled = [...ALL_ANIMALS];
+  for(let i = shuffled.length-1; i > 0; i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled.slice(0, COUNT);
+}
+
+function shuffleArray(arr){
+  const a = [...arr];
+  for(let i = a.length-1; i > 0; i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function updateScore(){
+  const icons = document.getElementById('found-icons');
+  icons.innerHTML = '';
+  for(const e of foundItems){
+    const sp = document.createElement('span');
+    sp.className = 'icon'; sp.textContent = e;
+    icons.appendChild(sp);
+  }
+  document.getElementById('remain-label').textContent = 'あと ' + (COUNT - round);
+}
+
+function buildCards(){
+  const rowTop = document.getElementById('row-top');
+  const rowBottom = document.getElementById('row-bottom');
+  rowTop.innerHTML = '';
+  rowBottom.innerHTML = '';
+
+  // 上段
+  for(let i = 0; i < COUNT; i++){
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.id = 'top-' + i;
+    card.textContent = topAnimals[i];
+    rowTop.appendChild(card);
+  }
+
+  // 下段
+  for(let i = 0; i < COUNT; i++){
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.id = 'bot-' + i;
+    card.textContent = bottomAnimals[i];
+    card.addEventListener('click', () => tapBottom(i));
+    rowBottom.appendChild(card);
+  }
+}
+
+function renderCards(){
+  // 上段
+  for(let i = 0; i < COUNT; i++){
+    const card = document.getElementById('top-' + i);
+    card.className = 'card';
+    if(gamePhase === 'playing' || gamePhase === 'done'){
+      if(i < round){
+        card.classList.add('found');
+      } else if(i === currentTarget){
+        card.classList.add('highlight');
+      }
+    }
+  }
+
+  // 下段
+  for(let i = 0; i < COUNT; i++){
+    const card = document.getElementById('bot-' + i);
+    const state = bottomStates[i];
+    card.className = 'card';
+
+    if(state === 'found'){
+      card.classList.add('found');
+      card.innerHTML = bottomAnimals[i];
+    } else if(state === 'hidden'){
+      card.classList.add('hidden');
+      card.innerHTML = '❓';
+    } else if(state === 'silhouette'){
+      card.classList.add('silhouette');
+      card.innerHTML = '<span class="emoji-wrap">' + bottomAnimals[i] + '</span>';
+    } else if(state === 'peeking'){
+      card.classList.add('peeking');
+      // ランダムな方向に見切れ
+      if(!card.dataset.peekDir){
+        const dirs = ['top','bottom','left','right'];
+        card.dataset.peekDir = dirs[Math.floor(Math.random()*dirs.length)];
+      }
+      const dir = card.dataset.peekDir;
+      let tx = 0, ty = 0;
+      if(dir === 'top') ty = -22;
+      else if(dir === 'bottom') ty = 22;
+      else if(dir === 'left') tx = -20;
+      else if(dir === 'right') tx = 20;
+      card.innerHTML = '<span class="emoji-wrap" style="display:inline-block;transform:translate('+tx+'px,'+ty+'px)">' + bottomAnimals[i] + '</span>';
+    } else if(state === 'revealed'){
+      card.classList.add('revealed');
+      card.innerHTML = bottomAnimals[i];
+    } else {
+      // preview
+      card.innerHTML = bottomAnimals[i];
+    }
+  }
+}
+
+function setupGame(){
+  topAnimals = pickAnimals();
+  bottomAnimals = shuffleArray(topAnimals);
+  currentTarget = 0;
+  round = 0;
+  foundItems = [];
+  missCount = 0;
+  gamePhase = 'preview';
+  bottomStates = Array(COUNT).fill('preview');
+
+  buildCards();
+  renderCards();
+  updateScore();
+
+  document.getElementById('quest').textContent = 'よく おぼえてね！';
+  document.getElementById('result').textContent = '';
+  document.getElementById('result').className = '';
+  document.getElementById('start-btn').classList.remove('hide');
+  document.getElementById('bottom-label').textContent = 'さがそう！';
+}
+
+function startGame(){
+  gamePhase = 'playing';
+  document.getElementById('start-btn').classList.add('hide');
+
+  // 下段を隠す
+  bottomStates = Array(COUNT).fill('hidden');
+  highlightTarget();
+  renderCards();
+}
+
+function highlightTarget(){
+  missCount = 0;
+  const animal = topAnimals[currentTarget];
+  document.getElementById('quest').textContent = animal + ' を さがそう！';
+  document.getElementById('result').textContent = '';
+  document.getElementById('result').className = '';
+}
+
+function tapBottom(i){
+  if(gamePhase !== 'playing') return;
+  if(bottomStates[i] === 'found') return;
+
+  const targetAnimal = topAnimals[currentTarget];
+
+  if(bottomAnimals[i] === targetAnimal){
+    // 正解！
+    bottomStates[i] = 'found';
+    round++;
+    foundItems.push(targetAnimal);
+    updateScore();
+
+    document.getElementById('result').textContent = '⭕ みつけた！';
+    document.getElementById('result').className = 'correct';
+
+    doFlash();
+    const card = document.getElementById('bot-' + i);
+    const rect = card.getBoundingClientRect();
+    spawnSparkles(rect.left + rect.width/2, rect.top + rect.height/2);
+
+    // 見つかってないカードを再び隠す
+    for(let j = 0; j < COUNT; j++){
+      if(bottomStates[j] !== 'found'){
+        bottomStates[j] = 'hidden';
+      }
+    }
+
+    renderCards();
+
+    if(round >= COUNT){
+      // 全部見つけた！
+      setTimeout(()=>{
+        gamePhase = 'done';
+        showFinalResult();
+      }, 1200);
+    } else {
+      // 次のお題へ
+      currentTarget++;
+      setTimeout(()=>{
+        highlightTarget();
+        renderCards();
+      }, 800);
+    }
+  } else {
+    // ハズレ
+    missCount++;
+
+    const card = document.getElementById('bot-' + i);
+    card.classList.add('wrong-shake');
+    setTimeout(() => card.classList.remove('wrong-shake'), 500);
+
+    if(missCount === 1){
+      // 1回目ハズレ → シルエット
+      document.getElementById('result').textContent = 'ちがうよ〜 ヒントだよ！';
+      document.getElementById('result').className = 'wrong';
+      for(let j = 0; j < COUNT; j++){
+        if(bottomStates[j] === 'hidden'){
+          bottomStates[j] = 'silhouette';
+        }
+      }
+      renderCards();
+    } else if(missCount === 2){
+      // 2回目ハズレ → 見切れ
+      document.getElementById('result').textContent = 'もうすこし みえるよ！';
+      document.getElementById('result').className = 'wrong';
+      for(let j = 0; j < COUNT; j++){
+        if(bottomStates[j] !== 'found'){
+          delete document.getElementById('bot-' + j).dataset.peekDir;
+          bottomStates[j] = 'peeking';
+        }
+      }
+      renderCards();
+    } else if(missCount >= 3){
+      // 3回目ハズレ → 全部表示
+      document.getElementById('result').textContent = 'ぜんぶ みえるよ！';
+      document.getElementById('result').className = 'wrong';
+      for(let j = 0; j < COUNT; j++){
+        if(bottomStates[j] !== 'found'){
+          bottomStates[j] = 'revealed';
+        }
+      }
+      renderCards();
+    }
+  }
+}
+
+function showFinalResult(){
+  const overlay = document.getElementById('result-overlay');
+  document.getElementById('res-title').textContent = '⭐ よくできたね！ ⭐';
+  document.getElementById('res-found').textContent = foundItems.join('');
+  document.getElementById('res-detail').textContent = 'ぜんぶ みつけたよ！';
+  overlay.classList.add('show');
+}
+
+function resetGame(){
+  document.getElementById('result-overlay').classList.remove('show');
+  setupGame();
+}
+
+document.getElementById('restartBtn').addEventListener('click', resetGame);
+
+// ======== キラキラ ========
+const spCanvas = document.getElementById('sparkle-canvas');
+const spCtx = spCanvas.getContext('2d');
+let sparkles = [];
+let sparkleAnim = null;
+
+function resizeSparkleCanvas(){
+  spCanvas.width = window.innerWidth;
+  spCanvas.height = window.innerHeight;
+}
+resizeSparkleCanvas();
+window.addEventListener('resize', resizeSparkleCanvas);
+
+const SPARKLE_COLORS = ['#ffee44','#ff88cc','#88eeff','#aaffaa','#ffaa44','#ffffff','#88ff88'];
+
+function spawnSparkles(cx, cy){
+  for(let i = 0; i < 25; i++){
+    const angle = Math.random()*Math.PI*2, speed = 2+Math.random()*5;
+    sparkles.push({
+      x:cx, y:cy, vx:Math.cos(angle)*speed, vy:Math.sin(angle)*speed-2,
+      r:3+Math.random()*5, life:1, decay:0.015+Math.random()*0.015,
+      color:SPARKLE_COLORS[Math.floor(Math.random()*SPARKLE_COLORS.length)],
+      star:Math.random()<0.5, rot:Math.random()*Math.PI*2, rotSpeed:(Math.random()-0.5)*0.15
+    });
+  }
+  if(!sparkleAnim) sparkleLoop();
+}
+
+function sparkleLoop(){
+  spCtx.clearRect(0, 0, spCanvas.width, spCanvas.height);
+  sparkles = sparkles.filter(p => p.life > 0);
+  for(const p of sparkles){
+    p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.vx *= 0.99;
+    p.life -= p.decay; p.rot += p.rotSpeed;
+    if(p.life <= 0) continue;
+    spCtx.save(); spCtx.globalAlpha = p.life;
+    spCtx.translate(p.x, p.y); spCtx.rotate(p.rot);
+    if(p.star){
+      spCtx.fillStyle = p.color; spCtx.beginPath();
+      for(let i=0;i<4;i++){
+        const a=(Math.PI/2)*i;
+        spCtx.lineTo(Math.cos(a-0.15)*p.r*0.3, Math.sin(a-0.15)*p.r*0.3);
+        spCtx.lineTo(Math.cos(a)*p.r*1.5, Math.sin(a)*p.r*1.5);
+      }
+      spCtx.closePath(); spCtx.fill();
+    } else {
+      spCtx.fillStyle = p.color;
+      spCtx.beginPath(); spCtx.arc(0,0,p.r,0,Math.PI*2); spCtx.fill();
+    }
+    spCtx.restore();
+  }
+  if(sparkles.length > 0){ sparkleAnim = requestAnimationFrame(sparkleLoop); }
+  else { sparkleAnim = null; }
+}
+
+function doFlash(){
+  const fl = document.getElementById('flash-overlay');
+  fl.classList.remove('flash'); void fl.offsetWidth; fl.classList.add('flash');
+}
+
+// ======== 開始 ========
+setupGame();
+</script>
+</body>
+</html>

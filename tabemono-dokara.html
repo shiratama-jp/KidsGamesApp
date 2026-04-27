@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>たべものは どこからくるの？</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  background: #f0f8ee;
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+}
+.container {
+  text-align: center;
+  padding: 14px;
+  max-width: 440px;
+  width: 100%;
+}
+h1 {
+  font-size: 19px; font-weight: 900; color: #4a8a30;
+  margin-bottom: 4px; letter-spacing: 1px;
+}
+.subtitle {
+  font-size: 12px; color: #7aaa60; margin-bottom: 10px;
+}
+
+/* お題 */
+#quest-area {
+  background: rgba(255,255,255,0.85);
+  border-radius: 16px; padding: 10px 16px; margin-bottom: 10px;
+  box-shadow: 0 2px 10px rgba(60,140,40,0.1);
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+#quest-emoji { font-size: 50px; line-height: 1; animation: quest-bounce 2s ease-in-out infinite; }
+@keyframes quest-bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+#quest-text { font-size: 16px; font-weight: 900; color: #4a7a30; }
+#quest-name { font-size: 20px; font-weight: 900; color: #3a6a20; }
+
+/* 場面エリア */
+#scene-area {
+  position: relative;
+  width: 100%;
+  margin-bottom: 10px;
+}
+#scene-canvas {
+  width: 100%;
+  border-radius: 16px;
+  box-shadow: 0 3px 14px rgba(60,140,40,0.12);
+  cursor: pointer;
+}
+
+#result {
+  font-size: 17px; font-weight: 700; min-height: 26px; margin-bottom: 8px;
+}
+#result.correct { color: #4aaa50; }
+#result.wrong { color: #e8aa00; }
+
+/* 正解セット表示 */
+#pairs-area {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
+  margin-bottom: 10px; min-height: 40px;
+}
+.pair-set {
+  background: rgba(255,255,255,0.85);
+  border-radius: 12px;
+  padding: 4px 10px;
+  display: flex; align-items: center; gap: 4px;
+  font-size: 20px;
+  box-shadow: 0 2px 6px rgba(60,140,40,0.08);
+  animation: pair-pop 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+.pair-set .pair-label { font-size: 10px; font-weight: 700; color: #7aaa60; }
+@keyframes pair-pop { 0%{transform:scale(0)} 100%{transform:scale(1)} }
+
+#remain-label {
+  font-size: 14px; font-weight: 900; color: #7aaa60;
+  margin-bottom: 8px;
+}
+
+.game-btn {
+  padding: 10px 28px;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-size: 16px; font-weight: 900; cursor: pointer;
+  border: 3px solid #5aaa40; border-radius: 12px;
+  background: rgba(100,190,70,0.85); color: #fff;
+  box-shadow: 0 4px 12px rgba(60,160,40,0.3);
+  transition: all 0.2s; visibility: hidden;
+}
+.game-btn:hover { background: rgba(80,170,50,0.95); transform: scale(1.04); }
+.game-btn.visible { visibility: visible; }
+
+/* 結果画面 */
+#result-overlay {
+  display: none; position: fixed;
+  top:0; left:0; width:100%; height:100%;
+  background: rgba(240,248,238,0.95);
+  z-index: 100; flex-direction: column;
+  align-items: center; justify-content: center; gap: 8px;
+}
+#result-overlay.show { display: flex; }
+#result-overlay .big { font-size: 26px; font-weight: 900; color: #4a8a30; }
+#result-overlay .detail { font-size: 15px; font-weight: 700; color: #6a9a50; }
+#result-pairs {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
+  margin: 8px 0;
+}
+.restart-btn {
+  margin-top: 8px; padding: 10px 32px;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-size: 18px; font-weight: 900; cursor: pointer;
+  border: 3px solid #5aaa40; border-radius: 60px;
+  background: rgba(100,190,70,0.85); color: #fff;
+  box-shadow: 0 4px 0 #3a8a20; transition: all 0.2s;
+}
+.restart-btn:hover { background: rgba(80,170,50,0.95); }
+
+#flash-overlay {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  pointer-events: none; z-index: 90; opacity: 0;
+}
+#flash-overlay.flash { animation: flash-bang 0.6s ease-out forwards; }
+@keyframes flash-bang {
+  0% { opacity:0; background: radial-gradient(circle, rgba(255,255,200,0.9), rgba(200,255,200,0.3)); }
+  15% { opacity:1; } 100% { opacity:0; }
+}
+#sparkle-canvas {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  pointer-events: none; z-index: 91;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🌱 たべものは どこからくるの？ 🌱</h1>
+  <p class="subtitle">たべものが そだつ ばしょを えらぼう！</p>
+
+  <div id="quest-area">
+    <div id="quest-emoji">🍎</div>
+    <div>
+      <div id="quest-text">これは どこから？</div>
+      <div id="quest-name">りんご</div>
+    </div>
+  </div>
+
+  <div id="scene-area">
+    <canvas id="scene-canvas" width="400" height="200"></canvas>
+  </div>
+
+  <div id="result"></div>
+  <div id="remain-label"></div>
+  <div id="pairs-area"></div>
+
+  <button class="game-btn" id="nextBtn">つぎの たべもの →</button>
+</div>
+
+<div id="result-overlay">
+  <div class="big" id="res-title"></div>
+  <div id="result-pairs"></div>
+  <div class="detail" id="res-detail"></div>
+  <button class="restart-btn" id="restartBtn">もういっかい！</button>
+</div>
+
+<div id="flash-overlay"></div>
+<canvas id="sparkle-canvas"></canvas>
+
+<script>
+const SW = 400, SH = 200;
+const canvas = document.getElementById('scene-canvas');
+const ctx = canvas.getContext('2d');
+
+// 場所の定義
+const PLACES = [
+  { id: 'tree',   label: 'き',     color: '#5aaa30' },
+  { id: 'field',  label: 'はたけ', color: '#8a7a40' },
+  { id: 'paddy',  label: 'たんぼ', color: '#6aaa50' },
+  { id: 'sea',    label: 'うみ',   color: '#4a8ac0' },
+  { id: 'animal', label: 'どうぶつ', color: '#c09060' }
+];
+
+// 食べ物の定義
+const FOODS = [
+  { emoji: '🍎', name: 'りんご',   place: 'tree' },
+  { emoji: '🍊', name: 'みかん',   place: 'tree' },
+  { emoji: '🍇', name: 'ぶどう',   place: 'tree' },
+  { emoji: '🍌', name: 'バナナ',   place: 'tree' },
+  { emoji: '🍑', name: 'もも',     place: 'tree' },
+  { emoji: '🥕', name: 'にんじん', place: 'field' },
+  { emoji: '🌽', name: 'とうもろこし', place: 'field' },
+  { emoji: '🍅', name: 'トマト',   place: 'field' },
+  { emoji: '🥒', name: 'きゅうり', place: 'field' },
+  { emoji: '🍆', name: 'なす',     place: 'field' },
+  { emoji: '🥦', name: 'ブロッコリー', place: 'field' },
+  { emoji: '🍚', name: 'おこめ',   place: 'paddy' },
+  { emoji: '🐟', name: 'さかな',   place: 'sea' },
+  { emoji: '🦐', name: 'えび',     place: 'sea' },
+  { emoji: '🐙', name: 'たこ',     place: 'sea' },
+  { emoji: '🦀', name: 'かに',     place: 'sea' },
+  { emoji: '🥛', name: 'ぎゅうにゅう', place: 'animal' },
+  { emoji: '🥚', name: 'たまご',   place: 'animal' },
+  { emoji: '🍯', name: 'はちみつ', place: 'animal' }
+];
+
+const TOTAL = 8;
+let round = 0;
+let currentFood = null;
+let answered = false;
+let pairs = [];
+let autoNextTimer = null;
+let foodOrder = [];
+let hoveredPlace = null;
+
+// 各場所の当たり判定エリア
+const PLACE_RECTS = [
+  { id: 'tree',   x: 0,   y: 0, w: 80, h: 200 },
+  { id: 'field',  x: 80,  y: 0, w: 80, h: 200 },
+  { id: 'paddy',  x: 160, y: 0, w: 80, h: 200 },
+  { id: 'sea',    x: 240, y: 0, w: 80, h: 200 },
+  { id: 'animal', x: 320, y: 0, w: 80, h: 200 }
+];
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ===== 場面描画 =====
+function drawScene(highlightId) {
+  ctx.clearRect(0, 0, SW, SH);
+  const colW = SW / 5;
+
+  // 空
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, SH * 0.4);
+  skyGrad.addColorStop(0, '#87CEEB');
+  skyGrad.addColorStop(1, '#c8eaff');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, SW, SH * 0.4);
+
+  // 太陽
+  ctx.fillStyle = '#ffe060';
+  ctx.beginPath(); ctx.arc(SW - 30, 25, 16, 0, Math.PI * 2); ctx.fill();
+
+  // 雲
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.beginPath(); ctx.ellipse(60, 22, 20, 10, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(50, 26, 14, 8, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(72, 26, 16, 8, 0, 0, Math.PI * 2); ctx.fill();
+
+  // 各エリア描画
+  for (let i = 0; i < 5; i++) {
+    const x = i * colW;
+    const place = PLACES[i];
+    const isHighlight = place.id === highlightId;
+
+    // 地面ベース
+    ctx.fillStyle = isHighlight ? 'rgba(255,255,100,0.15)' : 'transparent';
+    ctx.fillRect(x, 0, colW, SH);
+
+    switch(place.id) {
+      case 'tree': drawTree(x, colW, isHighlight); break;
+      case 'field': drawField(x, colW, isHighlight); break;
+      case 'paddy': drawPaddy(x, colW, isHighlight); break;
+      case 'sea': drawSea(x, colW, isHighlight); break;
+      case 'animal': drawAnimal(x, colW, isHighlight); break;
+    }
+
+    // ラベル
+    ctx.font = '900 12px "Zen Maru Gothic",sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = isHighlight ? '#d08000' : 'rgba(60,60,60,0.7)';
+    ctx.fillText(place.label, x + colW / 2, SH - 6);
+
+    // 区切り線
+    if (i > 0) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(x, SH * 0.35); ctx.lineTo(x, SH); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+}
+
+function drawTree(x, w, hl) {
+  const cx = x + w / 2;
+  // 地面
+  ctx.fillStyle = '#6abf3a';
+  ctx.fillRect(x, SH * 0.38, w, SH * 0.62);
+
+  // 木の幹
+  ctx.fillStyle = '#8B6030';
+  ctx.fillRect(cx - 6, SH * 0.32, 12, SH * 0.45);
+  // 葉
+  ctx.fillStyle = '#3a9a2a';
+  ctx.beginPath(); ctx.ellipse(cx, SH * 0.3, 28, 24, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#4aaa3a';
+  ctx.beginPath(); ctx.ellipse(cx - 10, SH * 0.35, 18, 16, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx + 12, SH * 0.33, 16, 14, 0, 0, Math.PI * 2); ctx.fill();
+  // 果実
+  ctx.font = '16px serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('🍎', cx - 12, SH * 0.28);
+  ctx.fillText('🍎', cx + 10, SH * 0.35);
+
+  if (hl) {
+    ctx.strokeStyle = '#ffcc44';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x + 2, 2, w - 4, SH - 4);
+  }
+}
+
+function drawField(x, w, hl) {
+  const cx = x + w / 2;
+  // 地面
+  ctx.fillStyle = '#8a7a40';
+  ctx.fillRect(x, SH * 0.55, w, SH * 0.45);
+  ctx.fillStyle = '#6abf3a';
+  ctx.fillRect(x, SH * 0.38, w, SH * 0.2);
+
+  // 畝
+  ctx.strokeStyle = '#7a6a30';
+  ctx.lineWidth = 2;
+  for (let r = 0; r < 3; r++) {
+    const ry = SH * 0.6 + r * 18;
+    ctx.beginPath(); ctx.moveTo(x + 5, ry); ctx.lineTo(x + w - 5, ry); ctx.stroke();
+  }
+  // 野菜
+  ctx.font = '14px serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('🥕', cx - 12, SH * 0.52);
+  ctx.fillText('🍅', cx + 12, SH * 0.48);
+  ctx.fillText('🌽', cx, SH * 0.42);
+
+  if (hl) {
+    ctx.strokeStyle = '#ffcc44';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x + 2, 2, w - 4, SH - 4);
+  }
+}
+
+function drawPaddy(x, w, hl) {
+  const cx = x + w / 2;
+  // 水田
+  ctx.fillStyle = '#6abf3a';
+  ctx.fillRect(x, SH * 0.38, w, SH * 0.15);
+  ctx.fillStyle = '#88bbaa';
+  ctx.fillRect(x, SH * 0.5, w, SH * 0.5);
+
+  // 稲
+  ctx.font = '14px serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('🌾', cx - 14, SH * 0.46);
+  ctx.fillText('🌾', cx + 2, SH * 0.43);
+  ctx.fillText('🌾', cx + 16, SH * 0.47);
+  ctx.fillText('🌾', cx - 8, SH * 0.55);
+  ctx.fillText('🌾', cx + 10, SH * 0.53);
+
+  // 水面の反射
+  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  ctx.fillRect(x + 5, SH * 0.65, w - 10, 3);
+  ctx.fillRect(x + 10, SH * 0.75, w - 20, 2);
+
+  if (hl) {
+    ctx.strokeStyle = '#ffcc44';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x + 2, 2, w - 4, SH - 4);
+  }
+}
+
+function drawSea(x, w, hl) {
+  const cx = x + w / 2;
+  // 砂浜
+  ctx.fillStyle = '#f0deb0';
+  ctx.fillRect(x, SH * 0.38, w, SH * 0.12);
+  // 海
+  const seaGrad = ctx.createLinearGradient(0, SH * 0.48, 0, SH);
+  seaGrad.addColorStop(0, '#4a9fd8');
+  seaGrad.addColorStop(1, '#2a6fa8');
+  ctx.fillStyle = seaGrad;
+  ctx.fillRect(x, SH * 0.48, w, SH * 0.52);
+
+  // 波
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.lineWidth = 1.5;
+  for (let r = 0; r < 3; r++) {
+    ctx.beginPath();
+    const by = SH * 0.55 + r * 18;
+    for (let px = x; px < x + w; px += 15) {
+      ctx.quadraticCurveTo(px + 4, by - 3, px + 7, by);
+      ctx.quadraticCurveTo(px + 10, by + 3, px + 15, by);
+    }
+    ctx.stroke();
+  }
+  // 魚
+  ctx.font = '14px serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('🐟', cx - 8, SH * 0.62);
+  ctx.fillText('🐙', cx + 10, SH * 0.75);
+
+  if (hl) {
+    ctx.strokeStyle = '#ffcc44';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x + 2, 2, w - 4, SH - 4);
+  }
+}
+
+function drawAnimal(x, w, hl) {
+  const cx = x + w / 2;
+  // 牧場の草原
+  ctx.fillStyle = '#6abf3a';
+  ctx.fillRect(x, SH * 0.38, w, SH * 0.62);
+
+  // 柵
+  ctx.strokeStyle = '#b09060';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(x + 5, SH * 0.42); ctx.lineTo(x + w - 5, SH * 0.42); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x + 5, SH * 0.50); ctx.lineTo(x + w - 5, SH * 0.50); ctx.stroke();
+  for (let p = 0; p < 3; p++) {
+    const px = x + 10 + p * 28;
+    ctx.beginPath(); ctx.moveTo(px, SH * 0.38); ctx.lineTo(px, SH * 0.54); ctx.stroke();
+  }
+  // 動物
+  ctx.font = '20px serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('🐄', cx - 5, SH * 0.70);
+  ctx.font = '14px serif';
+  ctx.fillText('🐔', cx + 18, SH * 0.62);
+
+  if (hl) {
+    ctx.strokeStyle = '#ffcc44';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(x + 2, 2, w - 4, SH - 4);
+  }
+}
+
+// ===== インタラクション =====
+function getCanvasPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = SW / rect.width;
+  const scaleY = SH / rect.height;
+  let cx, cy;
+  if (e.touches) { cx = e.touches[0].clientX; cy = e.touches[0].clientY; }
+  else { cx = e.clientX; cy = e.clientY; }
+  return { x: (cx - rect.left) * scaleX, y: (cy - rect.top) * scaleY };
+}
+
+function hitTest(pos) {
+  for (const r of PLACE_RECTS) {
+    if (pos.x >= r.x && pos.x < r.x + r.w && pos.y >= r.y && pos.y < r.y + r.h) {
+      return r.id;
+    }
+  }
+  return null;
+}
+
+canvas.addEventListener('mousemove', e => {
+  if (answered) return;
+  const pos = getCanvasPos(e);
+  const place = hitTest(pos);
+  if (place !== hoveredPlace) {
+    hoveredPlace = place;
+    drawScene(hoveredPlace);
+  }
+});
+
+canvas.addEventListener('mouseleave', () => {
+  hoveredPlace = null;
+  if (!answered) drawScene(null);
+});
+
+canvas.addEventListener('mousedown', e => { e.preventDefault(); handleTap(e); });
+canvas.addEventListener('touchstart', e => { e.preventDefault(); handleTap(e); }, { passive: false });
+
+function handleTap(e) {
+  if (answered) return;
+  const pos = getCanvasPos(e);
+  const place = hitTest(pos);
+  if (place) pickPlace(place);
+}
+
+// ===== ゲームロジック =====
+function updateRemain() {
+  document.getElementById('remain-label').textContent = 'あと ' + (TOTAL - round);
+}
+
+function renderPairs(targetId) {
+  const area = document.getElementById(targetId);
+  area.innerHTML = '';
+  for (const p of pairs) {
+    const div = document.createElement('div');
+    div.className = 'pair-set';
+    const placeInfo = PLACES.find(pl => pl.id === p.place);
+    const placeEmoji = { tree: '🌳', field: '🚜', paddy: '🌾', sea: '🌊', animal: '🐄' }[p.place];
+    div.innerHTML = p.foodEmoji + '→' + placeEmoji + '<span class="pair-label">' + p.foodName + '→' + placeInfo.label + '</span>';
+    area.appendChild(div);
+  }
+}
+
+function startRound() {
+  if (autoNextTimer) { clearTimeout(autoNextTimer); autoNextTimer = null; }
+  answered = false;
+  hoveredPlace = null;
+
+  currentFood = FOODS[foodOrder[round]];
+  document.getElementById('quest-emoji').textContent = currentFood.emoji;
+  document.getElementById('quest-name').textContent = currentFood.name;
+  document.getElementById('result').textContent = '';
+  document.getElementById('result').className = '';
+  document.getElementById('nextBtn').classList.remove('visible');
+  updateRemain();
+
+  drawScene(null);
+}
+
+function pickPlace(placeId) {
+  if (answered) return;
+  answered = true;
+
+  if (placeId === currentFood.place) {
+    // 正解！
+    round++;
+    pairs.push({ foodEmoji: currentFood.emoji, foodName: currentFood.name, place: placeId });
+    renderPairs('pairs-area');
+    updateRemain();
+
+    const placeInfo = PLACES.find(p => p.id === placeId);
+    document.getElementById('result').textContent = '⭕ ' + currentFood.name + ' は ' + placeInfo.label + ' だね！';
+    document.getElementById('result').className = 'correct';
+
+    drawScene(placeId);
+    doFlash();
+    const rect = canvas.getBoundingClientRect();
+    const colW = rect.width / 5;
+    const placeIdx = PLACES.findIndex(p => p.id === placeId);
+    spawnSparkles(rect.left + colW * placeIdx + colW / 2, rect.top + rect.height / 2);
+
+    if (round >= TOTAL) {
+      setTimeout(showFinalResult, 1500);
+    } else {
+      document.getElementById('nextBtn').classList.add('visible');
+      autoNextTimer = setTimeout(() => goNext(), 7000);
+    }
+  } else {
+    // 間違い
+    document.getElementById('result').textContent = 'ちがうよ〜 もういっかい！';
+    document.getElementById('result').className = 'wrong';
+    drawScene(placeId);
+
+    setTimeout(() => {
+      answered = false;
+      hoveredPlace = null;
+      drawScene(null);
+      document.getElementById('result').textContent = '';
+      document.getElementById('result').className = '';
+    }, 1500);
+  }
+}
+
+function goNext() {
+  if (autoNextTimer) { clearTimeout(autoNextTimer); autoNextTimer = null; }
+  startRound();
+}
+
+function showFinalResult() {
+  const overlay = document.getElementById('result-overlay');
+  document.getElementById('res-title').textContent = '⭐ よくできたね！ ⭐';
+  document.getElementById('res-detail').textContent = 'たべものの ことが わかったね！';
+  renderPairs('result-pairs');
+  overlay.classList.add('show');
+}
+
+function resetGame() {
+  round = 0; pairs = [];
+  document.getElementById('result-overlay').classList.remove('show');
+  document.getElementById('pairs-area').innerHTML = '';
+  foodOrder = shuffle([...Array(FOODS.length).keys()]).slice(0, TOTAL);
+  startRound();
+}
+
+document.getElementById('nextBtn').addEventListener('click', goNext);
+document.getElementById('restartBtn').addEventListener('click', resetGame);
+
+// ======== キラキラ ========
+const spCanvas = document.getElementById('sparkle-canvas');
+const spCtx = spCanvas.getContext('2d');
+let sparkles = [];
+let sparkleAnim = null;
+
+function resizeSparkleCanvas() {
+  spCanvas.width = window.innerWidth;
+  spCanvas.height = window.innerHeight;
+}
+resizeSparkleCanvas();
+window.addEventListener('resize', resizeSparkleCanvas);
+
+const SPARKLE_COLORS = ['#ffee44','#ff88cc','#88eeff','#aaffaa','#ffaa44','#ffffff','#88ff88'];
+
+function spawnSparkles(cx, cy) {
+  for (let i = 0; i < 25; i++) {
+    const angle = Math.random() * Math.PI * 2, speed = 2 + Math.random() * 5;
+    sparkles.push({
+      x: cx, y: cy, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 2,
+      r: 3 + Math.random() * 4, life: 1, decay: 0.015 + Math.random() * 0.015,
+      color: SPARKLE_COLORS[Math.floor(Math.random() * SPARKLE_COLORS.length)],
+      star: Math.random() < 0.5, rot: Math.random() * Math.PI * 2, rotSpeed: (Math.random() - 0.5) * 0.15
+    });
+  }
+  if (!sparkleAnim) sparkleLoop();
+}
+
+function sparkleLoop() {
+  spCtx.clearRect(0, 0, spCanvas.width, spCanvas.height);
+  sparkles = sparkles.filter(p => p.life > 0);
+  for (const p of sparkles) {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.vx *= 0.99;
+    p.life -= p.decay; p.rot += p.rotSpeed;
+    if (p.life <= 0) continue;
+    spCtx.save(); spCtx.globalAlpha = p.life;
+    spCtx.translate(p.x, p.y); spCtx.rotate(p.rot);
+    if (p.star) {
+      spCtx.fillStyle = p.color; spCtx.beginPath();
+      for (let i = 0; i < 4; i++) { const a = (Math.PI / 2) * i;
+        spCtx.lineTo(Math.cos(a - 0.15) * p.r * 0.3, Math.sin(a - 0.15) * p.r * 0.3);
+        spCtx.lineTo(Math.cos(a) * p.r * 1.5, Math.sin(a) * p.r * 1.5); }
+      spCtx.closePath(); spCtx.fill();
+    } else {
+      spCtx.fillStyle = p.color;
+      spCtx.beginPath(); spCtx.arc(0, 0, p.r, 0, Math.PI * 2); spCtx.fill();
+    }
+    spCtx.restore();
+  }
+  if (sparkles.length > 0) { sparkleAnim = requestAnimationFrame(sparkleLoop); }
+  else { sparkleAnim = null; }
+}
+
+function doFlash() {
+  const fl = document.getElementById('flash-overlay');
+  fl.classList.remove('flash'); void fl.offsetWidth; fl.classList.add('flash');
+}
+
+// ======== 開始 ========
+foodOrder = shuffle([...Array(FOODS.length).keys()]).slice(0, TOTAL);
+startRound();
+</script>
+</body>
+</html>

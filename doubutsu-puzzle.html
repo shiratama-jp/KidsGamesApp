@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>どうぶつ ぱずる</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f0f6ff;
+  --card: #ffffff;
+  --shadow: rgba(100, 140, 200, 0.15);
+  --accent: #5a9fd4;
+  --green: #5ab860;
+  --text: #3a4a5a;
+  --text-light: #8a9aaa;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  background: var(--bg);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.container {
+  text-align: center;
+  padding: 16px;
+  max-width: 420px;
+  width: 100%;
+}
+h1 {
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--text);
+  margin-bottom: 4px;
+  letter-spacing: 2px;
+}
+.subtitle {
+  font-size: 13px;
+  color: var(--text-light);
+  margin-bottom: 14px;
+}
+
+/* スコアエリア */
+#score-area {
+  background: rgba(255,255,255,0.8);
+  border-radius: 12px;
+  padding: 6px 14px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 38px;
+  box-shadow: 0 2px 8px var(--shadow);
+}
+#found-icons {
+  font-size: 22px;
+  letter-spacing: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px;
+}
+#found-icons .icon {
+  display: inline-block;
+  animation: icon-pop 0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes icon-pop { 0%{transform:scale(0)} 100%{transform:scale(1)} }
+#remain-label {
+  font-size: 15px;
+  font-weight: 900;
+  color: #6a8aaa;
+  white-space: nowrap;
+}
+
+/* お手本 */
+#sample-area {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+#sample-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-light);
+}
+#sample-canvas {
+  border-radius: 12px;
+  box-shadow: 0 3px 12px var(--shadow);
+  background: #fff;
+}
+
+/* パズル台紙 */
+#puzzle-area {
+  margin-bottom: 16px;
+  position: relative;
+  display: inline-block;
+}
+#puzzle-board {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 3px;
+  background: #d0dae8;
+  padding: 3px;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px var(--shadow);
+  position: relative;
+}
+.puzzle-slot {
+  width: 80px;
+  height: 80px;
+  background: #e8eff8;
+  border-radius: 10px;
+  position: relative;
+  transition: all 0.3s;
+  cursor: default;
+}
+.puzzle-slot canvas {
+  border-radius: 10px;
+  position: absolute;
+  top: 0; left: 0;
+}
+/* シルエット */
+.puzzle-slot .silhouette {
+  position: absolute;
+  top: 0; left: 0;
+  border-radius: 10px;
+  opacity: 0.12;
+}
+/* アクティブスロット（ここだよ！演出）*/
+.puzzle-slot.active {
+  background: #fff8dd;
+  box-shadow: 0 0 0 3px #ffcc44, inset 0 0 12px rgba(255,200,50,0.2);
+  animation: slot-pulse 1.2s ease-in-out infinite;
+}
+@keyframes slot-pulse {
+  0%,100% { box-shadow: 0 0 0 3px #ffcc44, inset 0 0 12px rgba(255,200,50,0.2); }
+  50% { box-shadow: 0 0 0 5px #ffdd66, inset 0 0 20px rgba(255,200,50,0.3); }
+}
+.puzzle-slot.filled {
+  background: #fff;
+}
+/* ここだよ矢印 */
+.slot-arrow {
+  position: absolute;
+  bottom: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  font-weight: 900;
+  color: #e8a000;
+  white-space: nowrap;
+  animation: arrow-bounce 0.8s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 10;
+}
+@keyframes arrow-bounce {
+  0%,100%{ transform: translateX(-50%) translateY(0); }
+  50%{ transform: translateX(-50%) translateY(-4px); }
+}
+
+/* 選択肢エリア */
+#choices-area {
+  margin-bottom: 14px;
+}
+#choices-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-light);
+  margin-bottom: 8px;
+}
+#choices {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.choice-btn {
+  width: 80px;
+  height: 80px;
+  border: 3px solid #c8d8e8;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+}
+.choice-btn:hover:not(:disabled) {
+  border-color: #ffcc44;
+  transform: scale(1.06);
+  box-shadow: 0 4px 12px rgba(255,200,50,0.3);
+}
+.choice-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+  transform: none;
+}
+.choice-btn canvas {
+  border-radius: 9px;
+}
+.choice-btn.wrong-shake {
+  animation: btn-shake 0.5s ease-in-out;
+}
+@keyframes btn-shake {
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-6px)}
+  40%{transform:translateX(6px)}
+  60%{transform:translateX(-4px)}
+  80%{transform:translateX(4px)}
+}
+
+/* 結果テキスト */
+#result {
+  font-size: 18px;
+  font-weight: 700;
+  min-height: 28px;
+  margin-bottom: 10px;
+  color: var(--text);
+}
+#result.correct { color: var(--green); }
+#result.wrong { color: #e8aa00; }
+
+/* ボタン */
+.game-btn {
+  padding: 10px 28px;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+  border: 3px solid #7ab540;
+  border-radius: 12px;
+  background: rgba(130,210,80,0.85);
+  color: #fff;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 12px rgba(100,180,60,0.3);
+  transition: all 0.2s;
+  visibility: hidden;
+}
+.game-btn:hover { background: rgba(100,190,50,0.95); transform: scale(1.04); }
+.game-btn.visible { visibility: visible; }
+
+/* 結果画面 */
+#result-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(240,246,255,0.95);
+  z-index: 100;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+#result-overlay.show { display: flex; }
+#result-overlay .big { font-size: 28px; font-weight: 900; color: #4a8a20; }
+#result-overlay .sweets { font-size: 36px; margin: 6px 0; }
+#result-overlay .found-list { font-size: 28px; letter-spacing: 4px; text-align: center; }
+#result-overlay .detail { font-size: 16px; font-weight: 700; color: #5a7a9a; }
+
+/* フラッシュ */
+#flash-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 90; opacity: 0;
+}
+#flash-overlay.flash {
+  animation: flash-bang 0.6s ease-out forwards;
+}
+@keyframes flash-bang {
+  0% { opacity: 0; background: radial-gradient(circle, rgba(255,255,200,0.9), rgba(255,240,100,0.3)); }
+  15% { opacity: 1; }
+  100% { opacity: 0; }
+}
+#sparkle-canvas {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 91;
+}
+/* 戻るボタン */
+.back-btn {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  width: auto;
+  height: 44px;
+  padding: 0 16px;
+  background: #fff;
+  border: 3px solid var(--green);
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--green);
+  cursor: pointer;
+  box-shadow: 0 4px 10px var(--shadow);
+  z-index: 1000;
+  text-decoration: none;
+  transition: transform 0.2s;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.back-btn:active { transform: scale(0.9); }
+.menu-btn {
+  background: #8a9aaa !important;
+  border-color: #6a7a8a !important;
+  visibility: visible !important;
+}
+</style>
+</head>
+<body>
+<a href="index.html" class="back-btn" id="backBtn">もどる</a>
+
+<div class="container">
+  <h1>🧩 どうぶつ ぱずる 🧩</h1>
+  <p class="subtitle">ばらばらの どうぶつを くみたてよう！</p>
+
+  <div id="score-area">
+    <div id="found-icons"></div>
+    <div id="remain-label">あと 5</div>
+  </div>
+
+  <div id="sample-area">
+    <div id="sample-label">おてほん →</div>
+    <canvas id="sample-canvas" width="70" height="70"></canvas>
+  </div>
+
+  <div id="puzzle-area">
+    <div id="puzzle-board">
+      <div class="puzzle-slot" id="slot-0"><canvas width="80" height="80"></canvas><canvas class="silhouette" width="80" height="80"></canvas></div>
+      <div class="puzzle-slot" id="slot-1"><canvas width="80" height="80"></canvas><canvas class="silhouette" width="80" height="80"></canvas></div>
+      <div class="puzzle-slot" id="slot-2"><canvas width="80" height="80"></canvas><canvas class="silhouette" width="80" height="80"></canvas></div>
+      <div class="puzzle-slot" id="slot-3"><canvas width="80" height="80"></canvas><canvas class="silhouette" width="80" height="80"></canvas></div>
+    </div>
+  </div>
+
+  <div id="choices-area">
+    <div id="choices-label">どのピースかな？</div>
+    <div id="choices"></div>
+  </div>
+
+  <div id="result"></div>
+  <button class="game-btn" id="nextBtn">つぎの どうぶつ →</button>
+</div>
+
+<div id="result-overlay">
+  <div class="big" id="res-title"></div>
+  <div class="sweets" id="res-sweets"></div>
+  <div class="found-list" id="res-found"></div>
+  <div class="detail" id="res-detail"></div>
+  <button class="game-btn visible" id="restartBtn">もういっかい！</button>
+</div>
+
+<div id="flash-overlay"></div>
+<canvas id="sparkle-canvas"></canvas>
+
+<script src="./audio-manager.js"></script>
+<script>
+const ANIMALS = [
+  { emoji: '🐶', name: 'いぬ' },
+  { emoji: '🐱', name: 'ねこ' },
+  { emoji: '🐰', name: 'うさぎ' },
+  { emoji: '🐹', name: 'ハムスター' },
+  { emoji: '🐻', name: 'くま' },
+  { emoji: '🐸', name: 'かえる' },
+  { emoji: '🐧', name: 'ぺんぎん' },
+  { emoji: '🦊', name: 'きつね' }
+];
+
+const TOTAL = 5;
+const EMOJI_SIZE = 160; // 描画サイズ
+const PIECE_SIZE = 80;
+
+let currentAnimal = null;
+let round = 0;
+let activeSlot = 0;
+let filledSlots = [false, false, false, false];
+let foundAnimals = [];
+let autoNextTimer = null;
+
+// オフスクリーンCanvasに絵文字を描画
+function renderEmoji(emoji, size) {
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  const ctx = c.getContext('2d');
+  ctx.font = (size * 0.85) + 'px serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(emoji, size / 2, size / 2 + size * 0.05);
+  return c;
+}
+
+// 4分割ピースを生成 (0=左上, 1=右上, 2=左下, 3=右下)
+function getPiece(emojiCanvas, index) {
+  const half = emojiCanvas.width / 2;
+  const sx = (index % 2) * half;
+  const sy = Math.floor(index / 2) * half;
+  const c = document.createElement('canvas');
+  c.width = PIECE_SIZE; c.height = PIECE_SIZE;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(emojiCanvas, sx, sy, half, half, 0, 0, PIECE_SIZE, PIECE_SIZE);
+  return c;
+}
+
+// シルエット（黒）
+function getSilhouettePiece(emojiCanvas, index) {
+  const piece = getPiece(emojiCanvas, index);
+  const ctx = piece.getContext('2d');
+  ctx.globalCompositeOperation = 'source-in';
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, PIECE_SIZE, PIECE_SIZE);
+  return piece;
+}
+
+// お手本描画
+function drawSample(emoji) {
+  const sc = document.getElementById('sample-canvas');
+  const ctx = sc.getContext('2d');
+  ctx.clearRect(0, 0, 70, 70);
+  ctx.font = '56px serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(emoji, 35, 38);
+}
+
+// スコア更新
+function updateScore() {
+  const icons = document.getElementById('found-icons');
+  icons.innerHTML = '';
+  for(const e of foundAnimals) {
+    const sp = document.createElement('span');
+    sp.className = 'icon';
+    sp.textContent = e;
+    icons.appendChild(sp);
+  }
+  document.getElementById('remain-label').textContent = 'あと ' + (TOTAL - round);
+}
+
+// パズル開始
+function startPuzzle() {
+  if(autoNextTimer) { clearTimeout(autoNextTimer); autoNextTimer = null; }
+
+  currentAnimal = ANIMALS[Math.floor(Math.random() * ANIMALS.length)];
+  activeSlot = 0;
+  filledSlots = [false, false, false, false];
+
+  drawSample(currentAnimal.emoji);
+
+  const emojiCanvas = renderEmoji(currentAnimal.emoji, EMOJI_SIZE);
+
+  // スロット初期化（シルエットだけ表示）
+  for(let i = 0; i < 4; i++) {
+    const slot = document.getElementById('slot-' + i);
+    slot.classList.remove('active', 'filled');
+    // メインcanvasクリア
+    const mainCvs = slot.querySelectorAll('canvas')[0];
+    mainCvs.getContext('2d').clearRect(0, 0, PIECE_SIZE, PIECE_SIZE);
+    // シルエット描画
+    const silCvs = slot.querySelectorAll('canvas')[1];
+    const silPiece = getSilhouettePiece(emojiCanvas, i);
+    silCvs.getContext('2d').clearRect(0, 0, PIECE_SIZE, PIECE_SIZE);
+    silCvs.getContext('2d').drawImage(silPiece, 0, 0);
+    // 矢印削除
+    const oldArrow = slot.querySelector('.slot-arrow');
+    if(oldArrow) oldArrow.remove();
+  }
+
+  // 選択肢生成（4ピース + ランダム順）
+  const choicesDiv = document.getElementById('choices');
+  choicesDiv.innerHTML = '';
+
+  const order = [0, 1, 2, 3];
+  // シャッフル
+  for(let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+
+  for(const idx of order) {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.dataset.piece = idx;
+    const piece = getPiece(emojiCanvas, idx);
+    const cvs = document.createElement('canvas');
+    cvs.width = PIECE_SIZE; cvs.height = PIECE_SIZE;
+    cvs.getContext('2d').drawImage(piece, 0, 0);
+    btn.appendChild(cvs);
+    btn.addEventListener('click', () => tryPiece(btn, parseInt(btn.dataset.piece)));
+    choicesDiv.appendChild(btn);
+  }
+
+  document.getElementById('result').textContent = '';
+  document.getElementById('result').className = '';
+  document.getElementById('nextBtn').classList.remove('visible');
+  updateScore();
+
+  // 最初のスロットをアクティブに
+  activateSlot(0);
+}
+
+function activateSlot(idx) {
+  // 既に全部埋まってたら完成
+  if(idx >= 4) {
+    puzzleComplete();
+    return;
+  }
+  // 埋まってるスロットはスキップ
+  if(filledSlots[idx]) {
+    activateSlot(idx + 1);
+    return;
+  }
+
+  activeSlot = idx;
+
+  // 全スロットのactive外す＋矢印削除
+  for(let i = 0; i < 4; i++) {
+    const s = document.getElementById('slot-' + i);
+    s.classList.remove('active');
+    const arr = s.querySelector('.slot-arrow');
+    if(arr) arr.remove();
+  }
+
+  const slot = document.getElementById('slot-' + idx);
+  slot.classList.add('active');
+
+  // 「ここだよ！」矢印
+  const arrow = document.createElement('div');
+  arrow.className = 'slot-arrow';
+  arrow.textContent = '👆ここ！';
+  slot.appendChild(arrow);
+}
+
+function tryPiece(btn, pieceIdx) {
+  if(btn.disabled) return;
+
+  if(pieceIdx === activeSlot) {
+    // 正解！
+    const emojiCanvas = renderEmoji(currentAnimal.emoji, EMOJI_SIZE);
+    const slot = document.getElementById('slot-' + activeSlot);
+    const mainCvs = slot.querySelectorAll('canvas')[0];
+    const piece = getPiece(emojiCanvas, activeSlot);
+    mainCvs.getContext('2d').drawImage(piece, 0, 0);
+
+    // シルエット非表示
+    slot.querySelectorAll('canvas')[1].style.display = 'none';
+
+    slot.classList.remove('active');
+    slot.classList.add('filled');
+    const arr = slot.querySelector('.slot-arrow');
+    if(arr) arr.remove();
+
+    filledSlots[activeSlot] = true;
+    btn.disabled = true;
+
+    // 小さいフラッシュ
+    doFlash();
+
+    // 正解の音！
+    AudioManager.playCorrect();
+
+    // 次のスロットへ
+    let next = -1;
+    for(let i = 0; i < 4; i++) {
+      if(!filledSlots[i]) { next = i; break; }
+    }
+    if(next === -1) {
+      // 全部埋まった！
+      setTimeout(() => puzzleComplete(), 300);
+    } else {
+      activateSlot(next);
+    }
+  } else {
+    // 間違い：ぶるぶる
+    btn.classList.remove('wrong-shake');
+    void btn.offsetWidth;
+    btn.classList.add('wrong-shake');
+
+    const result = document.getElementById('result');
+    result.textContent = 'ちがうよ〜';
+    result.className = 'wrong';
+    
+    // 不正解の音…
+    AudioManager.playWrong();
+
+    setTimeout(() => { if(result.textContent === 'ちがうよ〜') result.textContent = ''; }, 1200);
+  }
+}
+
+function puzzleComplete() {
+  round++;
+  foundAnimals.push(currentAnimal.emoji);
+  updateScore();
+
+  const result = document.getElementById('result');
+  result.textContent = '⭕ ' + currentAnimal.name + ' かんせい！';
+  result.className = 'correct';
+
+  // キラキラ演出
+  doFlash();
+  const board = document.getElementById('puzzle-board');
+  const rect = board.getBoundingClientRect();
+  spawnSparkles(rect.left + rect.width/2, rect.top + rect.height/2);
+  setTimeout(() => spawnSparkles(rect.left + rect.width/2, rect.top + rect.height/2), 200);
+
+  if(round >= TOTAL) {
+    setTimeout(showFinalResult, 1500);
+  } else {
+    document.getElementById('nextBtn').classList.add('visible');
+    autoNextTimer = setTimeout(() => goNext(), 7000);
+  }
+}
+
+function goNext() {
+  if(autoNextTimer) { clearTimeout(autoNextTimer); autoNextTimer = null; }
+  startPuzzle();
+}
+
+function showFinalResult() {
+  const overlay = document.getElementById('result-overlay');
+  document.getElementById('res-title').textContent = '⭐ よくできたね！ ⭐';
+  document.getElementById('res-sweets').textContent = '🍭🍩🍪🍬🍫';
+  document.getElementById('res-found').textContent = foundAnimals.join('');
+  document.getElementById('res-detail').textContent = foundAnimals.length + 'ひき つくれたよ！';
+  overlay.classList.add('show');
+
+  // てってれ〜！
+  AudioManager.playClear();
+}
+
+function resetGame() {
+  round = 0;
+  foundAnimals = [];
+  document.getElementById('result-overlay').classList.remove('show');
+  startPuzzle();
+}
+
+document.getElementById('nextBtn').addEventListener('click', goNext);
+document.getElementById('restartBtn').addEventListener('click', resetGame);
+document.getElementById('backBtn').addEventListener('click', (e) => {
+  e.preventDefault();
+  if (history.length > 1) {
+    history.back();
+  } else {
+    location.replace('index.html');
+  }
+});
+
+// ========== キラキラパーティクル ==========
+const spCanvas = document.getElementById('sparkle-canvas');
+const spCtx = spCanvas.getContext('2d');
+let sparkles = [];
+let sparkleAnim = null;
+
+function resizeSparkleCanvas() {
+  spCanvas.width = window.innerWidth;
+  spCanvas.height = window.innerHeight;
+}
+resizeSparkleCanvas();
+window.addEventListener('resize', resizeSparkleCanvas);
+
+const SPARKLE_COLORS = ['#ffee44','#ff88cc','#88eeff','#aaffaa','#ffaa44','#ffffff','#ff6688','#88ff88'];
+
+function spawnSparkles(cx, cy) {
+  for(let i = 0; i < 35; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 2 + Math.random() * 6;
+    sparkles.push({
+      x: cx, y: cy,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 2,
+      r: 3 + Math.random() * 6,
+      life: 1.0,
+      decay: 0.012 + Math.random() * 0.015,
+      color: SPARKLE_COLORS[Math.floor(Math.random() * SPARKLE_COLORS.length)],
+      star: Math.random() < 0.5,
+      rot: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 0.15
+    });
+  }
+  if(!sparkleAnim) sparkleLoop();
+}
+
+function drawSparkle(ctx, p) {
+  ctx.save();
+  ctx.globalAlpha = p.life;
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.rot);
+  if(p.star) {
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    for(let i = 0; i < 4; i++) {
+      const a = (Math.PI / 2) * i;
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(a - 0.15) * p.r * 0.3, Math.sin(a - 0.15) * p.r * 0.3);
+      ctx.lineTo(Math.cos(a) * p.r * 1.5, Math.sin(a) * p.r * 1.5);
+      ctx.lineTo(Math.cos(a + 0.15) * p.r * 0.3, Math.sin(a + 0.15) * p.r * 0.3);
+    }
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(0, 0, p.r * 0.3, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.globalAlpha = p.life * 0.8;
+    ctx.fill();
+  } else {
+    ctx.beginPath();
+    ctx.arc(0, 0, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = p.color;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(0, 0, p.r * 0.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.globalAlpha = p.life * 0.6;
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function sparkleLoop() {
+  spCtx.clearRect(0, 0, spCanvas.width, spCanvas.height);
+  sparkles = sparkles.filter(p => p.life > 0);
+  for(const p of sparkles) {
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.08; p.vx *= 0.99;
+    p.life -= p.decay; p.rot += p.rotSpeed;
+    if(p.life > 0) drawSparkle(spCtx, p);
+  }
+  if(sparkles.length > 0) {
+    sparkleAnim = requestAnimationFrame(sparkleLoop);
+  } else { sparkleAnim = null; }
+}
+
+function doFlash() {
+  const fl = document.getElementById('flash-overlay');
+  fl.classList.remove('flash');
+  void fl.offsetWidth;
+  fl.classList.add('flash');
+}
+
+// ========== 開始 ==========
+startPuzzle();
+</script>
+</body>
+</html>
