@@ -62,7 +62,7 @@ const AudioManager = {
         }, interval);
     },
 
-    // BGMトグル（メニュー・各ゲームページのボタンが使う）
+    // BGMトグル（メニュー画面専用: グローバル設定を変更する）
     toggleBGM() {
         this.init();
         if (this.bgm.paused) {
@@ -74,6 +74,16 @@ const AudioManager = {
         }
         localStorage.setItem('bgmEnabled', this.bgmEnabled);
         return this.bgmEnabled;
+    },
+
+    // ローカルトグル（各ゲーム画面専用: 今の画面の再生/停止のみ、グローバル設定は変更しない）
+    localToggleBGM() {
+        this.init();
+        if (this.bgm.paused) {
+            this.bgm.play().catch(() => {});
+        } else {
+            this.bgm.pause();
+        }
     },
 
     isPlaying() {

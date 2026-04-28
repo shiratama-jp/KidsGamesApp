@@ -1,5 +1,5 @@
 // にこにこどうぶつらんど - Service Worker (Cache First)
-const CACHE_NAME = 'nikoniko-doubutsu-v9';
+const CACHE_NAME = 'nikoniko-doubutsu-v10';
 const OFFLINE_ASSETS = [
   './',
   './index.html',

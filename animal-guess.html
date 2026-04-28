@@ -18,30 +18,32 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
   font-family: 'Zen Maru Gothic', sans-serif;
-  background: var(--bg);
+  background: transparent;
   min-height: 100vh;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   overflow: hidden;
 }
 .container {
   text-align: center;
   padding: 20px;
+  padding-top: 70px;
+  padding-bottom: 80px;
   max-width: 480px;
   width: 100%;
 }
 h1 {
-  font-size: 28px;
+  font-size: 20px;
   font-weight: 900;
   color: var(--text);
-  margin-bottom: 6px;
-  letter-spacing: 2px;
+  margin-bottom: 4px;
+  letter-spacing: 1px;
 }
 .subtitle {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-light);
-  margin-bottom: 20px;
+  margin-bottom: 0;
 }
 
 /* スコアエリア */
@@ -271,14 +273,19 @@ h1 {
 }
 .restart-btn:hover { background: rgba(100,190,50,0.95); transform: scale(1.04); }
 
-/* 草むら */
-.grass {
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  height: 60px;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 50;
+/* フッター花 */
+#footer-flowers {
+  position: fixed; bottom: 0; left: 0; width: 100%; height: 70px;
+  z-index: 5; pointer-events: none;
+}
+/* タイトルカード */
+.title-area {
+  background: rgba(255, 248, 210, 0.85);
+  border-radius: 16px;
+  padding: 10px 20px 12px;
+  margin-bottom: 14px;
+  display: inline-block;
+  width: 100%;
 }
 
 /* 正解フラッシュ */
@@ -383,6 +390,35 @@ h1 {
 </style>
 </head>
 <body>
+<div id="bg-nature" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;overflow:hidden;">
+<svg viewBox="0 0 380 600" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">
+  <defs>
+    <linearGradient id="np-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#87CEEB"/><stop offset="100%" stop-color="#c8eaff"/></linearGradient>
+    <linearGradient id="np-gr" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#d8f0d0"/><stop offset="100%" stop-color="#a8d890"/></linearGradient>
+  </defs>
+  <rect width="380" height="600" fill="url(#np-sky)"/>
+  <g fill="white" opacity="0.9">
+    <ellipse cx="60" cy="50" rx="40" ry="19"/><ellipse cx="86" cy="42" rx="33" ry="17"/><ellipse cx="38" cy="49" rx="25" ry="13"/>
+    <ellipse cx="280" cy="65" rx="48" ry="21"/><ellipse cx="312" cy="55" rx="36" ry="17"/><ellipse cx="252" cy="63" rx="28" ry="13"/>
+    <ellipse cx="168" cy="30" rx="30" ry="13"/><ellipse cx="189" cy="23" rx="24" ry="11"/>
+  </g>
+  <circle cx="338" cy="40" r="26" fill="#ffe060" opacity="0.9"/>
+  <g stroke="#ffe060" stroke-width="2.5" opacity="0.7">
+    <line x1="338" y1="4" x2="338" y2="0"/><line x1="362" y1="14" x2="368" y2="8"/>
+    <line x1="374" y1="40" x2="380" y2="40"/><line x1="362" y1="66" x2="368" y2="72"/>
+    <line x1="314" y1="14" x2="308" y2="8"/>
+  </g>
+  <rect x="0" y="125" width="380" height="475" fill="url(#np-gr)"/>
+  <rect x="8" y="125" width="11" height="45" fill="#8B5e30"/>
+  <ellipse cx="14" cy="110" rx="25" ry="27" fill="#3a8e3a"/>
+  <ellipse cx="5" cy="119" rx="15" ry="18" fill="#4a9e4a"/>
+  <ellipse cx="23" cy="121" rx="15" ry="16" fill="#2a7e2a"/>
+  <rect x="358" y="125" width="12" height="45" fill="#8B5e30"/>
+  <ellipse cx="364" cy="108" rx="25" ry="27" fill="#3a8e3a"/>
+  <ellipse cx="353" cy="118" rx="16" ry="18" fill="#4a9e4a"/>
+  <ellipse cx="374" cy="120" rx="15" ry="16" fill="#2a7e2a"/>
+</svg>
+</div>
 <a href="index.html" class="back-btn" id="backBtn">もどる</a>
 <button id="bgm-toggle" class="bgm-toggle-btn" type="button">🎵▶️</button>
 
@@ -394,8 +430,10 @@ h1 {
 </div>
 
 <div class="container" id="game-container">
-  <h1>🌿 かくれんぼ どうぶつ 🌿</h1>
-  <p class="subtitle">どの どうぶつが かくれているかな？</p>
+  <div class="title-area">
+    <h1>🌿 かくれんぼ どうぶつ 🌿</h1>
+    <p class="subtitle">どの どうぶつが かくれているかな？</p>
+  </div>
 
   <div id="score-area">
     <div id="found-icons"></div>
@@ -429,7 +467,6 @@ h1 {
 
 <div id="flash-overlay"></div>
 <canvas id="sparkle-canvas"></canvas>
-<div class="grass" id="grass"></div>
 
 <script src="./audio-manager.js"></script>
 <script>
@@ -774,7 +811,7 @@ AudioManager.initBGM();
 AudioManager.bgm.addEventListener('play', refreshBgmIcon);
 AudioManager.bgm.addEventListener('pause', refreshBgmIcon);
 refreshBgmIcon();
-bgmBtn.addEventListener('click', () => { AudioManager.toggleBGM(); refreshBgmIcon(); });
+bgmBtn.addEventListener('click', () => { AudioManager.localToggleBGM(); refreshBgmIcon(); });
 
 // スタートオーバーレイ
 document.getElementById('start-btn').addEventListener('click', () => {
@@ -783,22 +820,41 @@ document.getElementById('start-btn').addEventListener('click', () => {
   startRound();
 });
 
-// 草むら生成
-(function() {
-  const grass = document.getElementById('grass');
-  const leaves = ['🌿', '🍃', '🌱', '☘️'];
-  for (let i = 0; i < 30; i++) {
-    const s = document.createElement('span');
-    s.textContent = leaves[Math.floor(Math.random() * leaves.length)];
-    s.style.left = (i / 30 * 100) + '%';
-    s.style.bottom = Math.random() * 15 + 'px';
-    s.style.opacity = 0.4 + Math.random() * 0.4;
-    s.style.transform = 'rotate(' + (Math.random() * 40 - 20) + 'deg)';
-    grass.appendChild(s);
-  }
-})();
-
 // startRound()はスタートボタンから呼ばれる
 </script>
+<div id="footer-flowers">
+<svg viewBox="0 0 380 70" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">
+  <g fill="#5aaf30" opacity="0.8">
+    <polygon points="70,70 74,50 78,70"/><polygon points="77,70 80,55 83,70"/>
+    <polygon points="90,70 93,52 96,70"/><polygon points="278,70 281,53 284,70"/>
+    <polygon points="288,70 292,50 296,70"/><polygon points="295,70 298,56 301,70"/>
+  </g>
+  <line x1="28" y1="70" x2="28" y2="38" stroke="#4a8a20" stroke-width="2"/>
+  <circle cx="28" cy="34" r="5" fill="#ffee44"/>
+  <circle cx="22" cy="29" r="4.5" fill="#ff88aa"/><circle cx="28" cy="27" r="4.5" fill="#ff88aa"/>
+  <circle cx="34" cy="29" r="4.5" fill="#ff88aa"/><circle cx="34" cy="36" r="4.5" fill="#ff88aa"/>
+  <circle cx="28" cy="40" r="4.5" fill="#ff88aa"/><circle cx="22" cy="36" r="4.5" fill="#ff88aa"/>
+  <line x1="52" y1="70" x2="52" y2="32" stroke="#4a8a20" stroke-width="2"/>
+  <circle cx="52" cy="28" r="5" fill="#ffee44"/>
+  <circle cx="46" cy="23" r="4" fill="#ffaaff"/><circle cx="52" cy="21" r="4" fill="#ffaaff"/>
+  <circle cx="58" cy="23" r="4" fill="#ffaaff"/><circle cx="58" cy="30" r="4" fill="#ffaaff"/>
+  <circle cx="52" cy="34" r="4" fill="#ffaaff"/><circle cx="46" cy="30" r="4" fill="#ffaaff"/>
+  <line x1="340" y1="70" x2="340" y2="38" stroke="#4a8a20" stroke-width="2"/>
+  <circle cx="340" cy="34" r="5" fill="#ffee44"/>
+  <circle cx="334" cy="29" r="4.5" fill="#ff6666"/><circle cx="340" cy="27" r="4.5" fill="#ff6666"/>
+  <circle cx="346" cy="29" r="4.5" fill="#ff6666"/><circle cx="346" cy="36" r="4.5" fill="#ff6666"/>
+  <circle cx="340" cy="40" r="4.5" fill="#ff6666"/><circle cx="334" cy="36" r="4.5" fill="#ff6666"/>
+  <line x1="316" y1="70" x2="316" y2="32" stroke="#4a8a20" stroke-width="2"/>
+  <circle cx="316" cy="28" r="5" fill="#ffee44"/>
+  <circle cx="310" cy="23" r="4" fill="#cc88ff"/><circle cx="316" cy="21" r="4" fill="#cc88ff"/>
+  <circle cx="322" cy="23" r="4" fill="#cc88ff"/><circle cx="322" cy="30" r="4" fill="#cc88ff"/>
+  <circle cx="316" cy="34" r="4" fill="#cc88ff"/><circle cx="310" cy="30" r="4" fill="#cc88ff"/>
+  <line x1="358" y1="70" x2="358" y2="45" stroke="#4a8a20" stroke-width="1.5"/>
+  <circle cx="358" cy="42" r="4" fill="#ffee44"/>
+  <circle cx="353" cy="38" r="3.5" fill="#ffaa44"/><circle cx="358" cy="36" r="3.5" fill="#ffaa44"/>
+  <circle cx="363" cy="38" r="3.5" fill="#ffaa44"/><circle cx="363" cy="44" r="3.5" fill="#ffaa44"/>
+  <circle cx="358" cy="47" r="3.5" fill="#ffaa44"/><circle cx="353" cy="44" r="3.5" fill="#ffaa44"/>
+</svg>
+</div>
 </body>
 </html>

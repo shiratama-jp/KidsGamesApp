@@ -239,7 +239,7 @@
         <button id="bgm-toggle" class="bgm-btn" type="button">🎵▶️</button>
         <p class="bgm-credit">BGM: 甘茶の音楽工房</p>
         <p class="copyright">&copy; にこにこどうぶつらんど</p>
-        <p class="copyright">Ver.260428-1.00</p>
+        <p class="copyright">Ver.260428-1.01</p>
     </footer>
 
     <script src="./audio-manager.js"></script>
@@ -256,21 +256,17 @@
             });
         });
 
-        // BGMトグル: 押したらON/OFF切替、アイコンも更新
+        // BGMトグル: グローバル設定のON/OFF切替（🎵🔊=ON / 🎵🔇=OFF）
         const bgmBtn = document.getElementById('bgm-toggle');
         function refreshBgmIcon() {
-            bgmBtn.textContent = AudioManager.isPlaying() ? '🎵⏸️' : '🎵▶️';
+            bgmBtn.textContent = AudioManager.getBGMState() ? '🎵🔊' : '🎵🔇';
         }
+        AudioManager.initBGM();
         refreshBgmIcon();
         bgmBtn.addEventListener('click', () => {
             AudioManager.toggleBGM();
             refreshBgmIcon();
         });
-
-        // autoResumeBGM()が自動再生した場合もアイコンを同期
-        AudioManager.initBGM();
-        AudioManager.bgm.addEventListener('play', refreshBgmIcon);
-        AudioManager.bgm.addEventListener('pause', refreshBgmIcon);
 
         // Service Worker 登録
         if ('serviceWorker' in navigator) {

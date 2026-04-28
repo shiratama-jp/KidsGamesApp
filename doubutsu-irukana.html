@@ -7,10 +7,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#e8f4e0;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:'Zen Maru Gothic',sans-serif}
-#bg{position:relative;width:380px;padding:12px;overflow:hidden;border-radius:24px;background:#fff;box-shadow:0 10px 30px rgba(60,100,40,0.1)}
-#bg-svg{position:absolute;top:0;left:0;width:100%;height:100%;z-index:0;border-radius:24px}
-#wrap{position:relative;z-index:1;text-align:center;color:#3a2a0a}
+body{background:transparent;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;font-family:'Zen Maru Gothic',sans-serif}
+#bg{position:relative;width:100%;max-width:500px;padding:12px;background:transparent;}
+#bg-svg{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;}
+#wrap{position:relative;z-index:1;text-align:center;color:#3a2a0a;padding-top:70px;}
 
 #quest-area{
   background:rgba(255,250,230,0.9);border-radius:16px;padding:10px 16px;margin-bottom:8px;
@@ -80,14 +80,14 @@ body{background:#e8f4e0;display:flex;justify-content:center;align-items:center;m
   box-shadow:0 4px 12px rgba(100,180,60,0.3);transition:all 0.2s;
 }
 #startBtn:hover,.btn2:hover{background:rgba(100,190,50,0.95);transform:scale(1.04)}
-#countdown-overlay{display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.6);backdrop-filter:blur(4px);z-index:20;align-items:center;justify-content:center;border-radius:24px}
+#countdown-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.6);backdrop-filter:blur(4px);z-index:20;align-items:center;justify-content:center;}
 #countdown-overlay.show{display:flex}
 #countdown-num{font-size:96px;font-weight:900;color:#fff;text-shadow:0 0 30px rgba(255,220,50,0.9),0 4px 8px rgba(0,0,0,0.5)}
 @keyframes popNum{0%{transform:scale(1.6);opacity:0}30%{transform:scale(1.0);opacity:1}80%{transform:scale(1.0);opacity:1}100%{transform:scale(0.6);opacity:0}}
 #countdown-num.pop{animation:popNum 0.9s ease-out forwards}
 #flower-svg{position:absolute;bottom:0;left:0;width:100%;height:70px;z-index:1;pointer-events:none}
 
-#result-overlay{display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(255,250,230,0.96);z-index:30;border-radius:24px;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+#result-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,250,230,0.88);z-index:30;flex-direction:column;align-items:center;justify-content:center;gap:8px}
 #result-overlay.show{display:flex}
 #result-overlay .big{font-size:28px;font-weight:900;color:#4a8a20}
 #result-overlay .detail{font-size:16px;font-weight:700;color:#6a5030}
@@ -136,6 +136,16 @@ body{background:#e8f4e0;display:flex;justify-content:center;align-items:center;m
   -webkit-tap-highlight-color: transparent;
 }
 .bgm-toggle-btn:active { transform: scale(0.9); }
+.title-area {
+  background: rgba(255, 248, 210, 0.85);
+  border-radius: 16px;
+  padding: 10px 20px 12px;
+  margin-bottom: 10px;
+  display: inline-block;
+  width: 100%;
+}
+.title-area h1 { font-size: 20px; font-weight: 900; color: #4a3728; margin-bottom: 4px; letter-spacing: 1px; }
+.title-area .subtitle { font-size: 13px; color: #9a8575; }
 </style>
 </head>
 <body>
@@ -198,6 +208,10 @@ body{background:#e8f4e0;display:flex;justify-content:center;align-items:center;m
 </div>
 
 <div id="wrap">
+  <div class="title-area">
+    <h1>🐾 どうぶつ いるかな？ 🐾</h1>
+    <p class="subtitle">かくれている どうぶつを みつけよう！</p>
+  </div>
   <div id="quest-area">
     <div id="quest-label">この どうぶつを<br>さがそう！</div>
     <div id="quest-animal">🐶</div>
@@ -549,7 +563,7 @@ AudioManager.initBGM();
 AudioManager.bgm.addEventListener('play', refreshBgmIcon);
 AudioManager.bgm.addEventListener('pause', refreshBgmIcon);
 refreshBgmIcon();
-bgmBtn.addEventListener('click', () => { AudioManager.toggleBGM(); refreshBgmIcon(); });
+bgmBtn.addEventListener('click', () => { AudioManager.localToggleBGM(); refreshBgmIcon(); });
 
 document.getElementById('startBtn').addEventListener('click', startGame);
 document.getElementById('startBtn2').addEventListener('click', startGame);

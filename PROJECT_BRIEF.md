@@ -64,6 +64,84 @@
 - **音声**: あみたろの声素材工房の素材を検討中
 - **Google Play公開**: TWA（Trusted Web Activity）でラップすればストア公開可能（その場合のみAndroid Studioが必要）
 
+## 背景デザイン仕様（全ゲーム共通・基本設定）
+
+`doubutsu-puzzle.html` で確定したデザインを全ゲームの標準とする。
+
+### 構成
+
+| レイヤー | 内容 |
+|---|---|
+| 固定背景SVG | `position:fixed; top:0; left:0; width:100%; height:100%; z-index:-1;` |
+| フッター花飾り | `position:fixed; bottom:0; left:0; width:100%; height:70px; z-index:5; pointer-events:none;` |
+| ゲームコンテンツ | `padding-top:70px; padding-bottom:80px;` |
+
+### 背景SVG構成（上から順）
+
+```
+空（水色グラデ） ─── #87CEEB → #c8eaff（全面）
+雲（白楕円）   ─── y=20〜65あたり
+太陽           ─── 右上 (cx=338, cy=40)
+─── 空/草地の境界 y=125 ─────────────────
+草地（緑グラデ）─── #d8f0d0 → #a8d890（index.htmlと同じ）
+木（左右2本）   ─── 境界線上に配置
+花のフッター    ─── 画面最下部に固定
+```
+
+### 注意事項
+
+- **山（三角形）・虹は使用しない**（ゲームコンテンツと被るため）
+- **グラデーションIDは `np-sky` / `np-gr`** を使う（`sky`/`gr`はirukana専用）
+- タイトル+サブタイトルは **クリーム背景カード** でまとめる：`background: rgba(255,248,210,0.85); border-radius:16px;`
+- 地平線の草ぽこぽこ楕円（`<g fill="#90c878">`）は**入れない**（ゲーム内容と被る）
+
+### 実装テンプレート（新ゲーム作成時）
+
+```html
+<!-- body直後に追加 -->
+<div id="bg-nature" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;overflow:hidden;">
+<svg viewBox="0 0 380 600" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">
+  <defs>
+    <linearGradient id="np-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#87CEEB"/><stop offset="100%" stop-color="#c8eaff"/></linearGradient>
+    <linearGradient id="np-gr" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#d8f0d0"/><stop offset="100%" stop-color="#a8d890"/></linearGradient>
+  </defs>
+  <rect width="380" height="600" fill="url(#np-sky)"/>
+  <!-- 雲 -->
+  <g fill="white" opacity="0.9">
+    <ellipse cx="60" cy="50" rx="40" ry="19"/><ellipse cx="86" cy="42" rx="33" ry="17"/><ellipse cx="38" cy="49" rx="25" ry="13"/>
+    <ellipse cx="280" cy="65" rx="48" ry="21"/><ellipse cx="312" cy="55" rx="36" ry="17"/><ellipse cx="252" cy="63" rx="28" ry="13"/>
+    <ellipse cx="168" cy="30" rx="30" ry="13"/><ellipse cx="189" cy="23" rx="24" ry="11"/>
+  </g>
+  <!-- 太陽 -->
+  <circle cx="338" cy="40" r="26" fill="#ffe060" opacity="0.9"/>
+  <g stroke="#ffe060" stroke-width="2.5" opacity="0.7">
+    <line x1="338" y1="4" x2="338" y2="0"/><line x1="362" y1="14" x2="368" y2="8"/>
+    <line x1="374" y1="40" x2="380" y2="40"/><line x1="362" y1="66" x2="368" y2="72"/>
+    <line x1="314" y1="14" x2="308" y2="8"/>
+  </g>
+  <!-- 草地（y=125から） -->
+  <rect x="0" y="125" width="380" height="475" fill="url(#np-gr)"/>
+  <!-- 木（左） -->
+  <rect x="8" y="125" width="11" height="45" fill="#8B5e30"/>
+  <ellipse cx="14" cy="110" rx="25" ry="27" fill="#3a8e3a"/>
+  <ellipse cx="5" cy="119" rx="15" ry="18" fill="#4a9e4a"/>
+  <ellipse cx="23" cy="121" rx="15" ry="16" fill="#2a7e2a"/>
+  <!-- 木（右） -->
+  <rect x="358" y="125" width="12" height="45" fill="#8B5e30"/>
+  <ellipse cx="364" cy="108" rx="25" ry="27" fill="#3a8e3a"/>
+  <ellipse cx="353" cy="118" rx="16" ry="18" fill="#4a9e4a"/>
+  <ellipse cx="374" cy="120" rx="15" ry="16" fill="#2a7e2a"/>
+</svg>
+</div>
+
+<!-- body末尾に追加（花フッター） -->
+<div id="footer-flowers" style="position:fixed;bottom:0;left:0;width:100%;height:70px;z-index:5;pointer-events:none;">
+<svg viewBox="0 0 380 70" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;">
+  <!-- irukanaのflower-svgと同じ内容 -->
+</svg>
+</div>
+```
+
 ## BGM仕様（全ゲーム共通・基本設定）
 
 モバイルブラウザのオートプレイ制限に対応するため、以下の設計を採用する。
