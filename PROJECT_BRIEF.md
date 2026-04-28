@@ -64,6 +64,68 @@
 - **音声**: あみたろの声素材工房の素材を検討中
 - **Google Play公開**: TWA（Trusted Web Activity）でラップすればストア公開可能（その場合のみAndroid Studioが必要）
 
+## BGM仕様（全ゲーム共通・基本設定）
+
+モバイルブラウザのオートプレイ制限に対応するため、以下の設計を採用する。
+
+### 再生フロー
+
+1. **メイン画面（index.html）**: BGMは流さない。グローバルのON/OFFスイッチのみ配置。
+2. **各ゲーム画面**: 「はじめる」ボタンをトップに設ける。このボタンが押されたタイミングで `AudioManager.startBGM()` を呼び、ゲームを開始する。
+3. **ゲームクリア時**: `AudioManager.stopBGM()` を呼びフェードアウト（目安1秒）で停止する。
+
+### BGM設定の共有
+
+- グローバルON/OFF設定は `localStorage('bgmEnabled')` で全ページ共通。
+- 各ゲームページにも BGM ON/OFF トグルボタンを配置する（メイン画面と同じUI）。
+- BGMがOFFの状態で「はじめる」を押してもBGMは流れない（設定を尊重）。
+
+### audio-manager.js API（ゲーム実装時に使う関数）
+
+| 関数 | 用途 |
+|------|------|
+| `AudioManager.startBGM()` | 「はじめる」ボタン押下時に呼ぶ。bgmEnabledがtrueのときのみ再生 |
+| `AudioManager.stopBGM()` | ゲームクリア時に呼ぶ。フェードアウトして停止 |
+| `AudioManager.toggleBGM()` | ON/OFFボタン押下時に呼ぶ。現在の再生状態を反転 |
+| `AudioManager.playPoyon()` | 選択・ボタン押し効果音 |
+| `AudioManager.playCorrect()` | 正解効果音 |
+| `AudioManager.playWrong()` | 不正解効果音 |
+| `AudioManager.playClear()` | 全クリア効果音（stopBGMの直前に呼ぶ） |
+
+### 実装テンプレート（新ゲーム作成時のひな形）
+
+```html
+<!-- ゲーム画面のBGMトグルボタン（各ページ共通） -->
+<button id="bgm-toggle" class="bgm-btn" type="button">🎵⏸️</button>
+
+<script src="./audio-manager.js"></script>
+<script>
+  // BGMトグルボタンの初期化
+  const bgmBtn = document.getElementById('bgm-toggle');
+  function refreshBgmIcon() {
+    bgmBtn.textContent = AudioManager.isPlaying() ? '🎵⏸️' : '🎵▶️';
+  }
+  AudioManager.initBGM();
+  AudioManager.bgm.addEventListener('play', refreshBgmIcon);
+  AudioManager.bgm.addEventListener('pause', refreshBgmIcon);
+  refreshBgmIcon();
+  bgmBtn.addEventListener('click', () => { AudioManager.toggleBGM(); refreshBgmIcon(); });
+
+  // 「はじめる」ボタン
+  document.getElementById('start-btn').addEventListener('click', () => {
+    AudioManager.startBGM();  // ← ここでBGM開始
+    startGame();
+  });
+
+  // ゲームクリア時
+  function onGameClear() {
+    AudioManager.playClear();
+    AudioManager.stopBGM();   // ← フェードアウト停止
+    // クリア画面表示など...
+  }
+</script>
+```
+
 ## デザイン哲学（重要：全ゲーム共通）
 
 1. **非懲罰的**: 間違えても怒らない。「ちがうよ〜」+ぶるぶるアニメ。正解するまで何度でも挑戦可能

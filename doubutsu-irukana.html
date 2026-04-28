@@ -124,10 +124,23 @@ body{background:#e8f4e0;display:flex;justify-content:center;align-items:center;m
   border-color: #7a6555 !important;
   margin-top: 4px;
 }
+.bgm-toggle-btn {
+  position: fixed; top: 12px; right: 12px;
+  height: 44px; padding: 0 12px;
+  background: #fff; border: 3px solid #7ab540;
+  border-radius: 22px; font-size: 15px; font-weight: 900;
+  color: #7ab540; cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 1000;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  transition: transform 0.2s; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.bgm-toggle-btn:active { transform: scale(0.9); }
 </style>
 </head>
 <body>
 <a href="index.html" class="back-btn" id="backBtn">もどる</a>
+<button id="bgm-toggle" class="bgm-toggle-btn" type="button">🎵▶️</button>
 <div id="bg">
 <svg id="bg-svg" viewBox="0 0 380 600" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
   <defs>
@@ -476,6 +489,7 @@ function endGame(){
 
   // てってれ〜！
   AudioManager.playClear();
+  AudioManager.stopBGM(1200);
 }
 
 holes.forEach((h,i)=>{
@@ -506,6 +520,7 @@ function showCountdown(cb){
 function startGame(){
   if(running || gameState==='countdown') return;
   gameState = 'countdown';
+  AudioManager.startBGM();
 
   targetAnimal = ANIMALS[Math.floor(Math.random()*ANIMALS.length)];
   document.getElementById('quest-animal').textContent = targetAnimal.emoji;
@@ -524,6 +539,17 @@ function startGame(){
     setTimeout(scheduleNext, 500);
   });
 }
+
+// BGMトグルボタン
+const bgmBtn = document.getElementById('bgm-toggle');
+function refreshBgmIcon() {
+  bgmBtn.textContent = AudioManager.isPlaying() ? '🎵⏸️' : '🎵▶️';
+}
+AudioManager.initBGM();
+AudioManager.bgm.addEventListener('play', refreshBgmIcon);
+AudioManager.bgm.addEventListener('pause', refreshBgmIcon);
+refreshBgmIcon();
+bgmBtn.addEventListener('click', () => { AudioManager.toggleBGM(); refreshBgmIcon(); });
 
 document.getElementById('startBtn').addEventListener('click', startGame);
 document.getElementById('startBtn2').addEventListener('click', startGame);

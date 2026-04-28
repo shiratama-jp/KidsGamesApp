@@ -138,11 +138,55 @@ h1 {
   -webkit-tap-highlight-color: transparent;
 }
 .back-btn:active { transform: scale(0.9); }
+.bgm-toggle-btn {
+  position: fixed; top: 12px; right: 12px;
+  height: 44px; padding: 0 12px;
+  background: #fff; border: 3px solid #5aaa40;
+  border-radius: 22px; font-size: 15px; font-weight: 900;
+  color: #5aaa40; cursor: pointer;
+  box-shadow: 0 4px 10px rgba(60,140,40,0.15); z-index: 1000;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  transition: transform 0.2s; user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
+.bgm-toggle-btn:active { transform: scale(0.9); }
+#start-overlay {
+  position: fixed; top:0; left:0; width:100%; height:100%;
+  background: transparent; z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.start-content {
+  text-align: center; display: flex; flex-direction: column;
+  align-items: center; gap: 20px;
+  background: rgba(255,255,255,0.60);
+  border-radius: 28px; padding: 28px 40px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  pointer-events: auto;
+}
+.start-emoji { font-size: 80px; line-height: 1; animation: start-bounce 1.5s ease-in-out infinite; }
+@keyframes start-bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+.start-game-btn {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-size: 22px; font-weight: 900; padding: 14px 40px;
+  border: 3px solid #5aaa40; border-radius: 16px;
+  background: rgba(100,190,70,0.85); color: #fff; cursor: pointer;
+  box-shadow: 0 6px 0 #3a8a20; letter-spacing: 2px;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.start-game-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #3a8a20; }
 </style>
 </head>
 <body>
 <a href="index.html" class="back-btn" id="backBtn">もどる</a>
+<button id="bgm-toggle" class="bgm-toggle-btn" type="button">🎵▶️</button>
+
+<div id="start-overlay">
+  <div class="start-content">
+    <div class="start-emoji">🏠</div>
+    <button id="start-btn" class="start-game-btn">はじめる！</button>
+  </div>
+</div>
 
 <div class="container">
   <h1>🏠 おうちに かえろう 🏠</h1>
@@ -702,6 +746,7 @@ function showFinalResult() {
 
   // てってれ〜！
   AudioManager.playClear();
+  AudioManager.stopBGM(1200);
 }
 
 function resetGame() {
@@ -710,6 +755,7 @@ function resetGame() {
   goalReached = false;
   document.getElementById('result-overlay').classList.remove('show');
   document.getElementById('msg').textContent = 'スマホを かたむけてね！';
+  AudioManager.startBGM();
   startLevel();
 }
 
@@ -781,9 +827,27 @@ function doFlash() {
   fl.classList.remove('flash'); void fl.offsetWidth; fl.classList.add('flash');
 }
 
+// BGMトグルボタン
+const bgmBtn = document.getElementById('bgm-toggle');
+function refreshBgmIcon() {
+  bgmBtn.textContent = AudioManager.isPlaying() ? '🎵⏸️' : '🎵▶️';
+}
+AudioManager.initBGM();
+AudioManager.bgm.addEventListener('play', refreshBgmIcon);
+AudioManager.bgm.addEventListener('pause', refreshBgmIcon);
+refreshBgmIcon();
+bgmBtn.addEventListener('click', () => { AudioManager.toggleBGM(); refreshBgmIcon(); });
+
+// スタートオーバーレイ
+document.getElementById('start-btn').addEventListener('click', () => {
+  document.getElementById('start-overlay').style.display = 'none';
+  initSensor();
+  AudioManager.startBGM();
+  startLevel();
+});
+
 // ======== 開始 ========
-initSensor();
-startLevel();
+// startLevel()はスタートボタンから呼ばれる
 
 // ======== Service Worker 登録 ========
 if ('serviceWorker' in navigator) {
