@@ -201,95 +201,110 @@
             color: #aaa;
         }
 
-        .footer-btns {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .sub-btn {
+        .btn-qr {
             font-family: 'Zen Maru Gothic', sans-serif;
-            font-size: 14px;
-            font-weight: 700;
-            color: #4a8a30;
-            background: white;
-            border: 2px solid #a8d890;
-            border-radius: 24px;
-            padding: 7px 18px;
+            font-size: 15px;
+            font-weight: 900;
+            color: white;
+            background: #4ade80;
+            border: none;
+            border-radius: 30px;
+            padding: 10px 24px;
             cursor: pointer;
-            box-shadow: 0 3px 0 rgba(0,0,0,0.06);
+            box-shadow: 0 4px 0 rgba(0,0,0,0.1);
             transition: transform 0.1s, box-shadow 0.1s;
+            margin-top: 12px;
+            display: inline-block;
         }
-        .sub-btn:active {
-            transform: translateY(2px);
-            box-shadow: 0 1px 0 rgba(0,0,0,0.06);
+        .btn-qr:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 rgba(0,0,0,0.1);
         }
 
-        /* モーダル共通 */
-        .modal-overlay {
+        .qr-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 100;
+            align-items: center; justify-content: center;
+        }
+        .qr-overlay.show { display: flex; }
+        .qr-box {
+            background: white;
+            border-radius: 24px;
+            padding: 24px 20px 20px;
+            text-align: center;
+            max-width: 300px; width: 88%;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+            animation: qrPop 0.25s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        @keyframes qrPop {
+            from { transform: scale(0.8); opacity: 0; }
+            to   { transform: scale(1);   opacity: 1; }
+        }
+        .qr-box h3 {
+            font-size: 16px; font-weight: 900;
+            color: var(--text-main); margin-bottom: 14px;
+        }
+        .qr-box img {
+            width: 100%; max-width: 220px;
+            border-radius: 12px;
+            border: 3px solid #e0e0e0;
+        }
+        .qr-box p {
+            font-size: 12px; color: #888;
+            margin: 10px 0 16px;
+            line-height: 1.6;
+        }
+        .btn-qr-close {
+            font-family: 'Zen Maru Gothic', sans-serif;
+            font-size: 15px; font-weight: 900;
+            color: #666; background: #f0f0f0;
+            border: none; border-radius: 20px;
+            padding: 10px 32px; cursor: pointer;
+            box-shadow: 0 3px 0 rgba(0,0,0,0.08);
+        }
+        .btn-qr-close:active { transform: translateY(2px); }
+
+        .install-banner {
             display: none;
             position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.45);
-            z-index: 500;
-            align-items: center;
-            justify-content: center;
+            bottom: 12px; left: 12px; right: 12px;
+            max-width: 460px; margin: 0 auto;
+            background: white;
+            border: 3px solid #4ade80;
+            border-radius: 20px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            padding: 14px 16px;
+            z-index: 50;
+            animation: slideUpBanner 0.3s ease-out;
         }
-        .modal-overlay.show { display: flex; }
-        .modal-box {
-            background: #fff;
-            border-radius: 24px;
-            padding: 28px 24px 20px;
-            max-width: 320px;
-            width: 90%;
-            text-align: center;
-            box-shadow: 0 12px 40px rgba(0,0,0,0.2);
-            position: relative;
+        @keyframes slideUpBanner {
+            from { transform: translateY(20px); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
         }
-        .modal-title {
-            font-size: 17px;
-            font-weight: 900;
-            color: #4a8a30;
-            margin-bottom: 16px;
+        .install-banner.show { display: block; }
+        .install-banner .ib-head {
+            font-size: 15px; font-weight: 900; color: var(--text-main);
+            margin-bottom: 6px;
         }
-        .modal-close {
-            position: absolute;
-            top: 12px; right: 14px;
-            font-size: 22px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #aaa;
-            line-height: 1;
+        .install-banner .ib-body {
+            font-size: 13px; color: #555; line-height: 1.7;
         }
-        /* QRモーダル */
-        #qr-modal img {
-            width: 200px;
-            height: 200px;
-            border-radius: 12px;
-            border: 1px solid #eee;
+        .install-banner .ib-body strong { color: var(--text-main); font-weight: 700; }
+        .install-banner .ib-actions {
+            display: flex; gap: 8px; margin-top: 10px; justify-content: flex-end;
         }
-        .modal-url {
-            margin-top: 10px;
-            font-size: 11px;
-            color: #888;
-            word-break: break-all;
+        .install-banner .ib-actions button {
+            background: #4ade80; color: white; border: none;
+            padding: 9px 20px; border-radius: 20px;
+            font-family: 'Zen Maru Gothic', sans-serif;
+            font-size: 13px; font-weight: 900; cursor: pointer;
+            box-shadow: 0 3px 0 rgba(0,0,0,0.1);
         }
-        /* インストールモーダル */
-        .install-steps {
-            text-align: left;
-            font-size: 13px;
-            color: #444;
-            line-height: 1.9;
-            margin-bottom: 8px;
-        }
-        .install-steps strong {
-            display: block;
-            color: #4a8a30;
-            font-size: 13px;
-            margin-top: 10px;
-            margin-bottom: 2px;
+        .install-banner .ib-dismiss {
+            background: transparent !important;
+            color: #aaa !important; box-shadow: none !important;
         }
 
     </style>
@@ -304,6 +319,7 @@
     <header>
         <h1>にこにこ<br>どうぶつらんど</h1>
         <p class="subtitle">あそびたいのを えらんでね！</p>
+        <button class="btn-qr" onclick="document.getElementById('qrOverlay').classList.add('show')">みんなで遊ぼう 📲</button>
     </header>
 
     <div class="menu-grid">
@@ -328,39 +344,24 @@
 
     <footer>
         <button id="bgm-toggle" class="bgm-btn" type="button">🎵▶️</button>
-        <div class="footer-btns">
-            <button id="qr-btn" class="sub-btn" type="button">📱 QRコード</button>
-            <button id="install-btn" class="sub-btn" type="button">⬇️ インストール</button>
-        </div>
         <p class="bgm-credit">BGM: 甘茶の音楽工房</p>
         <p class="copyright">&copy; にこにこどうぶつらんど</p>
-        <p class="copyright">Ver.260428-1.02</p>
+        <p class="copyright">Ver.260428-1.03</p>
     </footer>
 
-    <!-- QRコードモーダル -->
-    <div class="modal-overlay" id="qr-modal">
-        <div class="modal-box">
-            <button class="modal-close" id="qr-close">✕</button>
-            <div class="modal-title">📱 QRコード</div>
-            <img src="images/animalland_qr.png" alt="QRコード">
-            <p class="modal-url">https://shiratama-jp.github.io/KidsGamesApp/</p>
+    <div class="qr-overlay" id="qrOverlay" onclick="this.classList.remove('show')">
+        <div class="qr-box" onclick="event.stopPropagation()">
+            <h3>📲 このQRコードをよみとってね！</h3>
+            <img src="images/animalland_qr.png" alt="にこにこどうぶつらんど QRコード">
+            <p>スマホのカメラでよみとると<br>にこにこどうぶつらんどがひらくよ！</p>
+            <button class="btn-qr-close" onclick="document.getElementById('qrOverlay').classList.remove('show')">とじる</button>
         </div>
     </div>
 
-    <!-- インストール案内モーダル -->
-    <div class="modal-overlay" id="install-modal">
-        <div class="modal-box">
-            <button class="modal-close" id="install-close">✕</button>
-            <div class="modal-title">⬇️ ホーム画面に追加</div>
-            <div class="install-steps">
-                <strong>🤖 Android（Chrome）</strong>
-                ブラウザ右上のメニュー（⋮）をタップ<br>
-                「ホーム画面に追加」を選ぶ
-                <strong>🍎 iPhone / iPad（Safari）</strong>
-                下部の共有ボタン（□↑）をタップ<br>
-                「ホーム画面に追加」を選ぶ
-            </div>
-        </div>
+    <div class="install-banner" id="installBanner">
+        <div class="ib-head">📲 ホーム画面に追加できるよ！</div>
+        <div class="ib-body" id="installBody"></div>
+        <div class="ib-actions" id="installActions"></div>
     </div>
 
     <script src="./audio-manager.js"></script>
@@ -389,25 +390,76 @@
             refreshBgmIcon();
         });
 
-        // QR・インストールモーダル
-        document.getElementById('qr-btn').addEventListener('click', () => {
-            document.getElementById('qr-modal').classList.add('show');
-        });
-        document.getElementById('qr-close').addEventListener('click', () => {
-            document.getElementById('qr-modal').classList.remove('show');
-        });
-        document.getElementById('qr-modal').addEventListener('click', (e) => {
-            if (e.target === e.currentTarget) e.currentTarget.classList.remove('show');
-        });
-        document.getElementById('install-btn').addEventListener('click', () => {
-            document.getElementById('install-modal').classList.add('show');
-        });
-        document.getElementById('install-close').addEventListener('click', () => {
-            document.getElementById('install-modal').classList.remove('show');
-        });
-        document.getElementById('install-modal').addEventListener('click', (e) => {
-            if (e.target === e.currentTarget) e.currentTarget.classList.remove('show');
-        });
+        // インストール案内
+        (function installPrompt() {
+            const $banner  = document.getElementById('installBanner');
+            const $body    = document.getElementById('installBody');
+            const $actions = document.getElementById('installActions');
+            let deferredPrompt = null;
+
+            if (window.matchMedia('(display-mode: standalone)').matches || navigator.standalone) return;
+            if (localStorage.getItem('install-dismissed')) return;
+
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+            function makeBtn(text, cls) {
+                const btn = document.createElement('button');
+                btn.textContent = text;
+                if (cls) btn.className = cls;
+                return btn;
+            }
+            function makeDismiss() {
+                const btn = makeBtn('あとで', 'ib-dismiss');
+                btn.addEventListener('click', () => {
+                    $banner.classList.remove('show');
+                    localStorage.setItem('install-dismissed', '1');
+                });
+                return btn;
+            }
+            function showIOSGuide() {
+                $body.innerHTML = '画面下の<strong>共有ボタン（□↑）</strong>をタップして<br><strong>「ホーム画面に追加」</strong>を選んでね！';
+                $actions.innerHTML = '';
+                $actions.appendChild(makeDismiss());
+                $banner.classList.add('show');
+            }
+            function showAndroidGuide() {
+                $body.innerHTML = 'ブラウザの<strong>メニュー（⋮）</strong>から<br><strong>「ホーム画面に追加」</strong>を選んでね！';
+                $actions.innerHTML = '';
+                $actions.appendChild(makeDismiss());
+                $banner.classList.add('show');
+            }
+            function showInstallButton() {
+                $body.innerHTML = 'アプリとしてインストールできるよ！';
+                $actions.innerHTML = '';
+                const btn = makeBtn('ホーム画面に追加');
+                btn.addEventListener('click', async () => {
+                    if (!deferredPrompt) return;
+                    deferredPrompt.prompt();
+                    const result = await deferredPrompt.userChoice;
+                    deferredPrompt = null;
+                    if (result.outcome === 'accepted') $banner.classList.remove('show');
+                });
+                $actions.appendChild(makeDismiss());
+                $actions.appendChild(btn);
+                $banner.classList.add('show');
+            }
+            if (isIOS) {
+                setTimeout(showIOSGuide, 800);
+            } else {
+                let prompted = false;
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    deferredPrompt = e;
+                    prompted = true;
+                    showInstallButton();
+                });
+                setTimeout(() => { if (!prompted) showAndroidGuide(); }, 2500);
+            }
+            window.addEventListener('appinstalled', () => {
+                $banner.classList.remove('show');
+                localStorage.setItem('install-dismissed', '1');
+            });
+        })();
 
         // Service Worker 登録
         if ('serviceWorker' in navigator) {
