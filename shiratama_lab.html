@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>しらたま工房</title>
+  <meta name="description" content="こどものための、やさしいアプリたち。安全・完全無料・広告なし。">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍡</text></svg>">
+  <style>
+    :root {
+      --color-text-primary: #4A1B0C;
+      --color-text-secondary: #7A4A2E;
+      --color-text-tertiary: #A88472;
+      --color-background-primary: #FFFFFF;
+      --color-background-secondary: #FBF6F0;
+      --color-border-tertiary: #EAD9CC;
+      --color-border-secondary: #D9BFAE;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #FFFCF7;
+      color: var(--color-text-primary);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      padding: 2rem 1rem;
+      display: flex;
+      justify-content: center;
+    }
+
+    .site-wrap {
+      font-family: 'Hiragino Maru Gothic Pro', 'Rounded Mplus 1c', 'Zen Maru Gothic', sans-serif;
+      max-width: 680px;
+      width: 100%;
+    }
+
+    .hero {
+      background: linear-gradient(to bottom, #FFF8F0 0%, #FFF3E8 100%);
+      border-radius: 16px;
+      padding: 2rem 2rem 1.5rem;
+      margin-bottom: 1.5rem;
+      border: 0.5px solid #F5C4B3;
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 1rem;
+    }
+
+    .logo-mark {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #FAECE7;
+      border: 2px solid #F0997B;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+
+    .site-name {
+      font-size: 22px;
+      font-weight: 500;
+      color: #993C1D;
+      letter-spacing: 0.05em;
+    }
+
+    .site-sub {
+      font-size: 13px;
+      color: #D85A30;
+      margin-top: 2px;
+    }
+
+    .hero-copy {
+      font-size: 15px;
+      color: #4A1B0C;
+      line-height: 1.8;
+      margin-bottom: 1.25rem;
+    }
+
+    .badges {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      font-size: 12px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+
+    .badge-safe { background: #EAF3DE; color: #3B6D11; }
+    .badge-free { background: #E6F1FB; color: #185FA5; }
+    .badge-noad { background: #FAEEDA; color: #854F0B; }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--color-text-primary);
+      margin: 0 0 1rem;
+      padding-left: 0.75rem;
+      border-left: 3px solid #F0997B;
+    }
+
+    .apps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 1.5rem;
+    }
+
+    .app-card {
+      background: linear-gradient(135deg, #FFFFFF 0%, #F4FBF0 100%);
+      border: 0.5px solid var(--color-border-tertiary);
+      border-radius: 14px;
+      padding: 1.25rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .app-tags {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+
+    .app-tag {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 10px;
+      font-weight: 500;
+    }
+
+    .tag-preschool { background: #E1F5EE; color: #0F6E56; }
+    .tag-elementary { background: #E8F4FE; color: #185FA5; }
+    .tag-allage { background: #F3F0FE; color: #534AB7; }
+    .tag-solo { background: #FEF3E2; color: #9A5E00; }
+    .tag-multi { background: #FAEEDA; color: #854F0B; }
+
+    .app-icon {
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .app-name {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--color-text-primary);
+    }
+
+    .app-desc {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      line-height: 1.6;
+    }
+
+    .app-bottom {
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding-top: 8px;
+    }
+
+    .qr-placeholder {
+      width: 108px;
+      height: 108px;
+      border-radius: 8px;
+      background: var(--color-background-secondary);
+      border: 0.5px dashed var(--color-border-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: var(--color-text-tertiary);
+    }
+
+    .app-link-btn {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 20px;
+      border-radius: 20px;
+      background: #FFF0E8;
+      border: 1px solid #F0997B;
+      color: #993C1D;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .app-link-btn:hover { background: #FAE0D4; }
+
+    .contact-box {
+      background: #FFF8F0;
+      border: 0.5px solid #F5C4B3;
+      border-radius: 14px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .contact-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: #993C1D;
+      margin-bottom: 0.5rem;
+    }
+
+    .contact-desc {
+      font-size: 13px;
+      color: #4A1B0C;
+      line-height: 1.9;
+    }
+
+    .reaction-note {
+      font-size: 13px;
+      color: #993C1D;
+      background: #FAECE7;
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      margin-top: 0.75rem;
+      line-height: 1.7;
+    }
+
+    .notice-box {
+      background: var(--color-background-secondary);
+      border: 0.5px solid var(--color-border-tertiary);
+      border-radius: 14px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .notice-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      margin-bottom: 0.5rem;
+    }
+
+    .notice-desc {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      line-height: 1.9;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 12px;
+      color: var(--color-text-tertiary);
+      margin-top: 1.5rem;
+      padding-top: 1rem;
+      border-top: 0.5px solid var(--color-border-tertiary);
+    }
+  </style>
+</head>
+<body>
+  <div class="site-wrap">
+    <div class="hero">
+      <div class="logo-area">
+        <div class="logo-mark">🍡</div>
+        <div>
+          <div class="site-name">しらたま工房</div>
+          <div class="site-sub">こどものための、やさしいアプリたち</div>
+        </div>
+      </div>
+      <p class="hero-copy">
+        こどもたちが安心して楽しめるアプリを、無料でご提供しています。<br>
+        インストールしてタブレットやスマートフォンからご利用ください。
+      </p>
+      <div class="badges">
+        <span class="badge badge-safe">🔒 安全</span>
+        <span class="badge badge-free">✨ 完全無料</span>
+        <span class="badge badge-noad">📵 広告なし</span>
+      </div>
+    </div>
+
+    <p class="section-title">アプリ一覧</p>
+
+    <div class="apps-grid">
+      <div class="app-card">
+        <div class="app-tags">
+          <span class="app-tag tag-preschool">未就学児向け</span>
+          <span class="app-tag tag-solo">ひとりで遊ぶ</span>
+        </div>
+        <div class="app-icon">🐹</div>
+        <div class="app-name">にこにこどうぶつらんど</div>
+        <div class="app-desc">動物と遊ぶミニゲーム集。クイズ・パズル・マッチングなど楽しいゲームがいっぱい。</div>
+        <div class="app-bottom">
+          <div class="qr-placeholder"><img src="images/animalland_qr.png" alt="QRコード" style="width:100%;height:100%;object-fit:contain;border-radius:6px;"></div>
+          <a href="https://shiratama-jp.github.io/KidsGamesApp/" class="app-link-btn">🔗 アプリを開く</a>
+        </div>
+      </div>
+      <div class="app-card">
+        <div class="app-tags">
+          <span class="app-tag tag-elementary">小学生向け</span>
+          <span class="app-tag tag-multi">ふたり以上で遊ぶ</span>
+        </div>
+        <div class="app-icon">🐹🐹</div>
+        <div class="app-name">みんなでどうぶつらんど</div>
+        <div class="app-desc">オセロなど、友だちや家族と対戦して遊べるゲーム集。</div>
+        <div class="app-bottom">
+          <div class="qr-placeholder"><img src="images/minnade_animalland_qr.png" alt="QRコード" style="width:100%;height:100%;object-fit:contain;border-radius:6px;"></div>
+          <a href="https://animalreversi.web.app/" class="app-link-btn">🔗 アプリを開く</a>
+        </div>
+      </div>
+      <div class="app-card">
+        <div class="app-tags">
+          <span class="app-tag tag-allage">全年齢</span>
+          <span class="app-tag tag-multi">みんなで使う</span>
+        </div>
+        <div class="app-icon">🎯</div>
+        <div class="app-name">あみだくじ</div>
+        <div class="app-desc">グループ分けや当番決めに。子どもから大人まで一緒に楽しめるくじアプリ。</div>
+        <div class="app-bottom">
+          <div class="qr-placeholder"><img src="images/amida_qr.png" alt="QRコード" style="width:100%;height:100%;object-fit:contain;border-radius:6px;"></div>
+          <a href="https://shiratama-jp.github.io/amidakuji/" class="app-link-btn">🔗 アプリを開く</a>
+        </div>
+      </div>
+      <div class="app-card">
+        <div class="app-tags">
+          <span class="app-tag tag-allage">全年齢</span>
+          <span class="app-tag tag-solo">ひとりで遊ぶ</span>
+        </div>
+        <div class="app-icon">❄️</div>
+        <div class="app-name">スノードーム</div>
+        <div class="app-desc">ふわふわと雪や星や花が舞うスノードームを楽しめる。鑑賞するだけでも楽しめる作品。</div>
+        <div class="app-bottom">
+          <div class="qr-placeholder"><img src="images/snowdorm_qr.png" alt="QRコード" style="width:100%;height:100%;object-fit:contain;border-radius:6px;"></div>
+          <a href="https://shiratama-jp.github.io/DigitalSnowDome/" class="app-link-btn">🔗 アプリを開く</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="contact-box">
+      <div class="contact-title">ご利用・お問い合わせについて</div>
+      <div class="contact-desc">
+        ご利用にあたって当方へのご連絡は不要です。どうぞご自由にお使いください。<br>
+        施設でのご利用、導入のご相談などもお気軽にどうぞ。<br>
+        趣味で運営しているため、返信にお時間をいただく場合があります。<br>
+        <span style="color: #D85A30;">✉ contact@example.com</span>
+      </div>
+      <div class="reaction-note">
+        💬 ご感想や改善のご意見などいただけると、次の制作の励みになります。よろしければお気軽にお声がけください。
+      </div>
+    </div>
+
+    <div class="notice-box">
+      <div class="notice-title">ご注意</div>
+      <div class="notice-desc">
+        · 本サイトのアプリのご利用により生じたいかなる損害についても、制作者は責任を負いかねます。<br>
+        · アプリの内容・仕様は予告なく変更・終了される場合があります。<br>
+        · 本サイトは個人が趣味で運営しています。
+      </div>
+    </div>
+
+    <div class="footer">© しらたま工房 — すべてのアプリは無料でご利用いただけます</div>
+  </div>
+</body>
+</html>
